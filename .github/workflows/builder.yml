@@ -20,5 +20,9 @@ jobs:
         id: builder-cache
         uses: actions/cache@v3
         with:
-          key: ${{ hashFiles('pkgs/**/PKGBUILD', 'manifest')}}
+          key: ${{ hashFiles('pkgs/**/PKGBUILD')}}
+          path: /tmp/builder.tar
+      - uses: actions/upload-artifact@v3
+        with:
+          name: image-builder
           path: /tmp/builder.tar

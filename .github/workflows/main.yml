@@ -35,9 +35,10 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          tags: image-builder:${{ github.sha }}
+          tags: image-builder:latest
           outputs: type=docker,dest=/tmp/builder.tar
-      - uses: actions/upload-artifact@v3
+      - if: ${{ steps.builder-cache.outputs.cache-hit != 'true' }}
+        uses: actions/upload-artifact@v3
         with:
           name: image-builder
           path: /tmp/builder.tar
