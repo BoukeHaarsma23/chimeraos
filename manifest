@@ -12,6 +12,10 @@ export BUG_REPORT_URL="https://github.com/ChimeraOS/chimeraos/issues"
 
 export KERNEL_PACKAGE="linux"
 
+export PACKAGE_OVERRIDES="\
+	https://archive.archlinux.org/packages/r/rust-bindgen/rust-bindgen-0.64.0-1-x86_64.pkg.tar.zst \
+"
+
 export PACKAGES="\
 	accountsservice \
 	alsa-firmware \
