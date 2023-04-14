@@ -2,6 +2,7 @@ name: System image build
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 on:
   push:
@@ -60,13 +61,16 @@ jobs:
       matrix:
         package: ${{ fromJson(needs.list-pkgbuilds.outputs.aur-pkgs) }}
     steps:
-      - name: Set repo name to lowercase
-        run: echo IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - uses: actions/checkout@v3
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
       - name: Build packages
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:master
-          docker run --rm -v $(pwd):/workdir --entrypoint=/workdir/aur-pkgs/build-aur-package.sh ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:master ${{ matrix.package }}
+          docker pull ${{ steps.meta.outputs.tags }}
+          docker run --rm -v $(pwd):/workdir --entrypoint=/workdir/aur-pkgs/build-aur-package.sh ${{ steps.meta.outputs.tags }} ${{ matrix.package }}
       - name: Upload Package Archives
         uses: actions/upload-artifact@v3
         with:
@@ -88,9 +92,12 @@ jobs:
       display_version: ${{ steps.build_image.outputs.display_version }}
       image_filename: ${{ steps.build_image.outputs.image_filename }}
     steps:
-      - name: set repo name to lowercase
-        run: echo IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - uses: actions/checkout@v3
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
       - uses: actions/download-artifact@v3
         with:
             name: AUR-packages
@@ -98,9 +105,9 @@ jobs:
       - name: Build system image
         id: build_image
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:master
-          docker run -u root --rm --entrypoint=/workdir/build-image.sh -v $(pwd):/workdir -v $(pwd)/output:/output -v $GITHUB_OUTPUT:$GITHUB_OUTPUT -e "GITHUB_OUTPUT=$GITHUB_OUTPUT" --privileged=true ghcr.io/boukehaarsma23/chimeraos-packages:master $(echo ${GITHUB_SHA} | cut -c1-7)
-          echo -e "$(docker inspect --format='{{index .RepoDigests 0}}' ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:master)" > output/container.txt
+          docker pull ${{ steps.meta.outputs.tags }}
+          docker run -u root --rm --entrypoint=/workdir/build-image.sh -v $(pwd):/workdir -v $(pwd)/output:/output -v $GITHUB_OUTPUT:$GITHUB_OUTPUT -e "GITHUB_OUTPUT=$GITHUB_OUTPUT" --privileged=true ${{ steps.meta.outputs.tags }} $(echo ${GITHUB_SHA} | cut -c1-7)
+          echo -e "$(docker inspect --format='{{index .RepoDigests 0}}' ${{ steps.meta.outputs.tags }})" > output/container.txt
       - if: github.ref != 'refs/heads/master'
         name: Create artifact
         uses: actions/upload-artifact@v3
