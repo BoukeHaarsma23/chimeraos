@@ -21,7 +21,6 @@ export PACKAGES="\
 	bluez-hid2hci \
 	bluez-plugins \
 	bluez-utils \
-	broadcom-wl-dkms \
 	cifs-utils \
 	diffutils \
 	dkms \
@@ -65,7 +64,6 @@ export PACKAGES="\
 	lib32-libva \
 	lib32-libva-intel-driver \
 	lib32-libva-vdpau-driver \
-	lib32-nvidia-utils \
 	lib32-openal \
 	lib32-pipewire \
 	lib32-systemd \
@@ -103,9 +101,6 @@ export PACKAGES="\
 	networkmanager \
 	nfs-utils \
 	nss-mdns \
-	nvidia-dkms \
-	nvidia-prime \
-	nvidia-utils \
 	openal \
 	openssh \
 	pipewire \
@@ -142,7 +137,6 @@ export PACKAGES="\
 "
 
 export AUR_PACKAGES="\
-	bcm20702a1-firmware \
 	boxtron \
 	chimera \
 	chimeraos-device-quirks-git \
@@ -159,27 +153,14 @@ export AUR_PACKAGES="\
 	libretro-prosystem-git \
 	libretro-stella2014-git \
 	libretro-virtualjaguar-git \
-	nintendo-udev \
-	opengamepadui-bin \
-	opengamepadui-session-git \
-	oxp-platform-dkms-git \
 	pikaur \
 	python-vdf \
-	r8152-dkms \
 	retroarch-autoconfig-udev-git \
-	rtl8812au-dkms-git \
-	rtl8814au-dkms-git \
-	rtl88x2bu-dkms-git \
-	rtl8821au-dkms-git \
-	rtw89-dkms-git \
 	ryzenadj-git \
 	ryzenadj-controller-git \
 	rz608-fix-git \
 	steam-removable-media-git \
 	wyvern \
-	xone-dkms \
-	xpad-noone-dkms \
-	xpadneo-dkms \
 "
 
 export SERVICES="\
