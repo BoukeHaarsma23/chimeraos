@@ -3,6 +3,7 @@
 export VERSION="42"
 export SYSTEM_DESC="ChimeraOS"
 export SYSTEM_NAME="chimeraos"
+export CODENAME="Agni"
 export USERNAME="gamer"
 export SIZE="10000MB"
 export ARCHIVE_DATE=""
