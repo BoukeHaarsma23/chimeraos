@@ -1,0 +1,408 @@
+From d4c0b9999f5b827528193071e55a69fe45c91e62 Mon Sep 17 00:00:00 2001
+From: Joshua Ashton <joshua@froggi.es>
+Date: Tue, 14 Mar 2023 05:36:25 +0000
+Subject: [PATCH 20/25] drm/amd/display: Support for degamma transfer functions
+
+---
+ .../gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c |  2 +-
+ .../gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h |  1 +
+ .../amd/display/amdgpu_dm/amdgpu_dm_color.c   | 55 ++++++++++++++++++-
+ .../amd/display/amdgpu_dm/amdgpu_dm_plane.c   |  9 ++-
+ drivers/gpu/drm/drm_atomic_state_helper.c     |  5 ++
+ drivers/gpu/drm/drm_atomic_uapi.c             | 13 +++++
+ drivers/gpu/drm/drm_color_mgmt.c              | 27 +++++++++
+ drivers/gpu/drm/drm_mode_config.c             | 36 ++++++++++++
+ include/drm/drm_color_mgmt.h                  | 18 ++++++
+ include/drm/drm_mode_config.h                 | 17 ++++++
+ include/drm/drm_plane.h                       | 16 ++++++
+ 11 files changed, 194 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+index 8f7b1bf20d66..084e50bd9556 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+@@ -4900,7 +4900,7 @@ static int fill_dc_plane_attributes(struct amdgpu_device *adev,
+ 	 * Always set input transfer function, since plane state is refreshed
+ 	 * every time.
+ 	 */
+-	ret = amdgpu_dm_update_plane_color_mgmt(dm_crtc_state, dc_plane_state);
++	ret = amdgpu_dm_update_plane_color_mgmt(dm_crtc_state, plane_state, dc_plane_state);
+ 	if (ret)
+ 		return ret;
+ 
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
+index df3c25e32c65..f303c782ca75 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
+@@ -787,6 +787,7 @@ void amdgpu_dm_init_color_mod(void);
+ int amdgpu_dm_verify_lut_sizes(const struct drm_crtc_state *crtc_state);
+ int amdgpu_dm_update_crtc_color_mgmt(struct dm_crtc_state *crtc);
+ int amdgpu_dm_update_plane_color_mgmt(struct dm_crtc_state *crtc,
++					  struct drm_plane_state *plane_state,
+ 				      struct dc_plane_state *dc_plane_state);
+ 
+ void amdgpu_dm_update_connector_after_detect(
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+index a4cb23d059bd..0fed8d8eed1c 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+@@ -495,9 +495,29 @@ int amdgpu_dm_update_crtc_color_mgmt(struct dm_crtc_state *crtc)
+ 	return 0;
+ }
+ 
++static enum dc_transfer_func_predefined drm_tf_to_dc_tf(enum drm_transfer_function drm_tf)
++{
++	switch (drm_tf)
++	{
++	default:
++	case DRM_TRANSFER_FUNCTION_DEFAULT: return TRANSFER_FUNCTION_LINEAR;
++	case DRM_TRANSFER_FUNCTION_SRGB:	return TRANSFER_FUNCTION_SRGB;
++
++	case DRM_TRANSFER_FUNCTION_BT709:	return TRANSFER_FUNCTION_BT709;
++	case DRM_TRANSFER_FUNCTION_PQ:		return TRANSFER_FUNCTION_PQ;
++	case DRM_TRANSFER_FUNCTION_LINEAR:	return TRANSFER_FUNCTION_LINEAR;
++	case DRM_TRANSFER_FUNCTION_UNITY:	return TRANSFER_FUNCTION_UNITY;
++	case DRM_TRANSFER_FUNCTION_HLG:		return TRANSFER_FUNCTION_HLG;
++	case DRM_TRANSFER_FUNCTION_GAMMA22:	return TRANSFER_FUNCTION_GAMMA22;
++	case DRM_TRANSFER_FUNCTION_GAMMA24:	return TRANSFER_FUNCTION_GAMMA24;
++	case DRM_TRANSFER_FUNCTION_GAMMA26:	return TRANSFER_FUNCTION_GAMMA26;
++	}
++}
++
+ /**
+  * amdgpu_dm_update_plane_color_mgmt: Maps DRM color management to DC plane.
+  * @crtc: amdgpu_dm crtc state
++ * @plane_state: DRM plane
+  * @dc_plane_state: target DC surface
+  *
+  * Update the underlying dc_stream_state's input transfer function (ITF) in
+@@ -508,13 +528,23 @@ int amdgpu_dm_update_crtc_color_mgmt(struct dm_crtc_state *crtc)
+  * 0 on success. -ENOMEM if mem allocation fails.
+  */
+ int amdgpu_dm_update_plane_color_mgmt(struct dm_crtc_state *crtc,
++					  struct drm_plane_state *plane_state,
+ 				      struct dc_plane_state *dc_plane_state)
+ {
+ 	const struct drm_color_lut *degamma_lut;
+ 	enum dc_transfer_func_predefined tf = TRANSFER_FUNCTION_SRGB;
++	enum drm_transfer_function drm_tf = DRM_TRANSFER_FUNCTION_DEFAULT;
+ 	uint32_t degamma_size;
++	bool has_degamma;
+ 	int r;
+ 
++	degamma_lut = __extract_blob_lut(plane_state->degamma_lut, &degamma_size);
++
++	has_degamma =
++		degamma_lut && !__is_lut_linear(degamma_lut, degamma_size);
++
++	drm_tf = plane_state->degamma_tf;
++
+ 	/* Get the correct base transfer function for implicit degamma. */
+ 	switch (dc_plane_state->format) {
+ 	case SURFACE_PIXEL_FORMAT_VIDEO_420_YCbCr:
+@@ -526,7 +556,30 @@ int amdgpu_dm_update_plane_color_mgmt(struct dm_crtc_state *crtc,
+ 		break;
+ 	}
+ 
+-	if (crtc->cm_has_degamma) {
++	if (has_degamma) {
++		ASSERT(degamma_size == MAX_COLOR_LUT_ENTRIES);
++
++		dc_plane_state->in_transfer_func->type =
++			TF_TYPE_DISTRIBUTED_POINTS;
++
++		dc_plane_state->in_transfer_func->tf =
++			drm_tf_to_dc_tf(drm_tf);
++
++		r = __set_input_tf(dc_plane_state->in_transfer_func,
++				   degamma_lut, degamma_size);
++		if (r)
++			return r;
++	} else if (drm_tf != DRM_TRANSFER_FUNCTION_DEFAULT) {
++		dc_plane_state->in_transfer_func->type =
++			TF_TYPE_PREDEFINED;
++
++		dc_plane_state->in_transfer_func->tf =
++			drm_tf_to_dc_tf(drm_tf);
++
++		if (!mod_color_calculate_degamma_params(NULL,
++			    dc_plane_state->in_transfer_func, NULL, false))
++			return -ENOMEM;
++	} else if (crtc->cm_has_degamma) {
+ 		degamma_lut = __extract_blob_lut(crtc->base.degamma_lut,
+ 						 &degamma_size);
+ 		ASSERT(degamma_size == MAX_COLOR_LUT_ENTRIES);
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
+index 3c50b3ff7954..bf6f76e11248 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
+@@ -1548,6 +1548,7 @@ int amdgpu_dm_plane_init(struct amdgpu_display_manager *dm,
+ 	int res = -EPERM;
+ 	unsigned int supported_rotations;
+ 	uint64_t *modifiers = NULL;
++	bool is_dcn;
+ 
+ 	num_formats = get_plane_formats(plane, plane_cap, formats,
+ 					ARRAY_SIZE(formats));
+@@ -1606,9 +1607,11 @@ int amdgpu_dm_plane_init(struct amdgpu_display_manager *dm,
+ 
+ 	drm_plane_helper_add(plane, &dm_plane_helper_funcs);
+ 
+-#ifdef CONFIG_DRM_AMD_DC_HDR
+-	attach_color_mgmt_properties(dm, plane);
+-#endif
++	/* Don't enable DRM CRTC degamma property for DCE since it doesn't
++	 * support programmable degamma anywhere.
++	 */
++	is_dcn = dm->adev->dm.dc->caps.color.dpp.dcn_arch;
++	drm_plane_enable_color_mgmt(plane, is_dcn ? MAX_COLOR_LUT_ENTRIES : 0);
+ 	/* Create (reset) the plane state */
+ 	if (plane->funcs->reset)
+ 		plane->funcs->reset(plane);
+diff --git a/drivers/gpu/drm/drm_atomic_state_helper.c b/drivers/gpu/drm/drm_atomic_state_helper.c
+index dfb57217253b..9bdfaed48c85 100644
+--- a/drivers/gpu/drm/drm_atomic_state_helper.c
++++ b/drivers/gpu/drm/drm_atomic_state_helper.c
+@@ -253,6 +253,8 @@ void __drm_atomic_helper_plane_state_reset(struct drm_plane_state *plane_state,
+ 	plane_state->alpha = DRM_BLEND_ALPHA_OPAQUE;
+ 	plane_state->pixel_blend_mode = DRM_MODE_BLEND_PREMULTI;
+ 
++	plane_state->degamma_tf = DRM_TRANSFER_FUNCTION_DEFAULT;
++
+ 	if (plane->color_encoding_property) {
+ 		if (!drm_object_property_get_default_value(&plane->base,
+ 							   plane->color_encoding_property,
+@@ -332,6 +334,8 @@ void __drm_atomic_helper_plane_duplicate_state(struct drm_plane *plane,
+ {
+ 	memcpy(state, plane->state, sizeof(*state));
+ 
++	if (state->degamma_lut)
++		drm_property_blob_get(state->degamma_lut);
+ 	if (state->fb)
+ 		drm_framebuffer_get(state->fb);
+ 
+@@ -383,6 +387,7 @@ void __drm_atomic_helper_plane_destroy_state(struct drm_plane_state *state)
+ 	if (state->commit)
+ 		drm_crtc_commit_put(state->commit);
+ 
++	drm_property_blob_put(state->degamma_lut);
+ 	drm_property_blob_put(state->fb_damage_clips);
+ }
+ EXPORT_SYMBOL(__drm_atomic_helper_plane_destroy_state);
+diff --git a/drivers/gpu/drm/drm_atomic_uapi.c b/drivers/gpu/drm/drm_atomic_uapi.c
+index c06d0639d552..9795ae81bbba 100644
+--- a/drivers/gpu/drm/drm_atomic_uapi.c
++++ b/drivers/gpu/drm/drm_atomic_uapi.c
+@@ -575,6 +575,15 @@ static int drm_atomic_plane_set_property(struct drm_plane *plane,
+ 	} else if (plane->funcs->atomic_set_property) {
+ 		return plane->funcs->atomic_set_property(plane, state,
+ 				property, val);
++	} else if (property == config->plane_degamma_lut_property) {
++		ret = drm_atomic_replace_property_blob_from_id(dev,
++					&state->degamma_lut,
++					val,
++					-1, sizeof(struct drm_color_lut),
++					&replaced);
++		return ret;
++	} else if (property == config->plane_degamma_tf_property) {
++		state->degamma_tf = val;
+ 	} else {
+ 		drm_dbg_atomic(plane->dev,
+ 			       "[PLANE:%d:%s] unknown property [PROP:%d:%s]]\n",
+@@ -635,6 +644,10 @@ drm_atomic_plane_get_property(struct drm_plane *plane,
+ 		*val = state->scaling_filter;
+ 	} else if (plane->funcs->atomic_get_property) {
+ 		return plane->funcs->atomic_get_property(plane, state, property, val);
++	} else if (property == config->plane_degamma_lut_property) {
++		*val = (state->degamma_lut) ? state->degamma_lut->base.id : 0;
++	} else if (property == config->plane_degamma_tf_property) {
++		*val = state->degamma_tf;
+ 	} else {
+ 		return -EINVAL;
+ 	}
+diff --git a/drivers/gpu/drm/drm_color_mgmt.c b/drivers/gpu/drm/drm_color_mgmt.c
+index d021497841b8..d47121fddc0a 100644
+--- a/drivers/gpu/drm/drm_color_mgmt.c
++++ b/drivers/gpu/drm/drm_color_mgmt.c
+@@ -191,6 +191,33 @@ void drm_crtc_enable_color_mgmt(struct drm_crtc *crtc,
+ }
+ EXPORT_SYMBOL(drm_crtc_enable_color_mgmt);
+ 
++/**
++ * drm_plane_enable_color_mgmt - enable color management properties
++ * @crtc: DRM PLANE
++ * @degamma_lut_size: the size of the degamma lut (before CSC)
++ *
++ * I should write something here, but I haven't currently.
++ * Please enjoy the following word: Frog.
++ */
++void drm_plane_enable_color_mgmt(struct drm_plane *plane,
++				uint degamma_lut_size)
++{
++	struct drm_device *dev = plane->dev;
++	struct drm_mode_config *config = &dev->mode_config;
++
++	if (degamma_lut_size) {
++		drm_object_attach_property(&plane->base,
++					   config->plane_degamma_lut_property, 0);
++		drm_object_attach_property(&plane->base,
++					   config->plane_degamma_lut_size_property,
++					   degamma_lut_size);
++		drm_object_attach_property(&plane->base,
++					   config->plane_degamma_tf_property,
++					   DRM_TRANSFER_FUNCTION_DEFAULT);
++	}
++}
++EXPORT_SYMBOL(drm_plane_enable_color_mgmt);
++
+ /**
+  * drm_mode_crtc_set_gamma_size - set the gamma table size
+  * @crtc: CRTC to set the gamma table size for
+diff --git a/drivers/gpu/drm/drm_mode_config.c b/drivers/gpu/drm/drm_mode_config.c
+index 8525ef851540..5f04eaede48f 100644
+--- a/drivers/gpu/drm/drm_mode_config.c
++++ b/drivers/gpu/drm/drm_mode_config.c
+@@ -216,6 +216,19 @@ static const struct drm_prop_enum_list drm_plane_type_enum_list[] = {
+ 	{ DRM_PLANE_TYPE_CURSOR, "Cursor" },
+ };
+ 
++static const struct drm_prop_enum_list drm_transfer_function_enum_list[] = {
++	{ DRM_TRANSFER_FUNCTION_DEFAULT, "Default" },
++	{ DRM_TRANSFER_FUNCTION_SRGB, "sRGB" },
++	{ DRM_TRANSFER_FUNCTION_BT709, "BT.709" },
++	{ DRM_TRANSFER_FUNCTION_PQ, "PQ (Perceptual Quantizer)" },
++	{ DRM_TRANSFER_FUNCTION_LINEAR, "Linear" },
++	{ DRM_TRANSFER_FUNCTION_UNITY, "Unity" }, /* kinda useless, whatever. */
++	{ DRM_TRANSFER_FUNCTION_HLG, "HLG (Hybrid Log Gamma)" },
++	{ DRM_TRANSFER_FUNCTION_GAMMA22, "Gamma 2.2" },
++	{ DRM_TRANSFER_FUNCTION_GAMMA24, "Gamma 2.4" },
++	{ DRM_TRANSFER_FUNCTION_GAMMA26, "Gamma 2.6" },
++};
++
+ static int drm_mode_create_standard_properties(struct drm_device *dev)
+ {
+ 	struct drm_property *prop;
+@@ -344,6 +357,29 @@ static int drm_mode_create_standard_properties(struct drm_device *dev)
+ 		return -ENOMEM;
+ 	dev->mode_config.degamma_lut_size_property = prop;
+ 
++	prop = drm_property_create(dev,
++			DRM_MODE_PROP_BLOB,
++			"VALVE1_PLANE_DEGAMMA_LUT", 0);
++	if (!prop)
++		return -ENOMEM;
++	dev->mode_config.plane_degamma_lut_property = prop;
++
++	prop = drm_property_create_range(dev,
++			DRM_MODE_PROP_IMMUTABLE,
++			"VALVE1_PLANE_DEGAMMA_LUT_SIZE", 0, UINT_MAX);
++	if (!prop)
++		return -ENOMEM;
++	dev->mode_config.plane_degamma_lut_size_property = prop;
++
++	prop = drm_property_create_enum(dev,
++					DRM_MODE_PROP_ENUM,
++					"VALVE1_PLANE_DEGAMMA_TF",
++					drm_transfer_function_enum_list,
++					ARRAY_SIZE(drm_transfer_function_enum_list));
++	if (!prop)
++		return -ENOMEM;
++	dev->mode_config.plane_degamma_tf_property = prop;
++
+ 	prop = drm_property_create(dev,
+ 			DRM_MODE_PROP_BLOB,
+ 			"CTM", 0);
+diff --git a/include/drm/drm_color_mgmt.h b/include/drm/drm_color_mgmt.h
+index 81c298488b0c..5d5e14792ebe 100644
+--- a/include/drm/drm_color_mgmt.h
++++ b/include/drm/drm_color_mgmt.h
+@@ -62,6 +62,9 @@ void drm_crtc_enable_color_mgmt(struct drm_crtc *crtc,
+ int drm_mode_crtc_set_gamma_size(struct drm_crtc *crtc,
+ 				 int gamma_size);
+ 
++void drm_plane_enable_color_mgmt(struct drm_plane *plane,
++				uint degamma_lut_size);
++
+ /**
+  * drm_color_lut_size - calculate the number of entries in the LUT
+  * @blob: blob containing the LUT
+@@ -74,6 +77,21 @@ static inline int drm_color_lut_size(const struct drm_property_blob *blob)
+ 	return blob->length / sizeof(struct drm_color_lut);
+ }
+ 
++enum drm_transfer_function {
++	DRM_TRANSFER_FUNCTION_DEFAULT,
++
++	DRM_TRANSFER_FUNCTION_SRGB,
++	DRM_TRANSFER_FUNCTION_BT709,
++	DRM_TRANSFER_FUNCTION_PQ,
++	DRM_TRANSFER_FUNCTION_LINEAR,
++	DRM_TRANSFER_FUNCTION_UNITY,
++	DRM_TRANSFER_FUNCTION_HLG,
++	DRM_TRANSFER_FUNCTION_GAMMA22,
++	DRM_TRANSFER_FUNCTION_GAMMA24,
++	DRM_TRANSFER_FUNCTION_GAMMA26,
++	DRM_TRANSFER_FUNCTION_MAX,
++};
++
+ enum drm_color_encoding {
+ 	DRM_COLOR_YCBCR_BT601,
+ 	DRM_COLOR_YCBCR_BT709,
+diff --git a/include/drm/drm_mode_config.h b/include/drm/drm_mode_config.h
+index 5362702fffe1..55c575b6bb61 100644
+--- a/include/drm/drm_mode_config.h
++++ b/include/drm/drm_mode_config.h
+@@ -792,6 +792,23 @@ struct drm_mode_config {
+ 	 * the degamma LUT as supported by the driver (read-only).
+ 	 */
+ 	struct drm_property *degamma_lut_size_property;
++	/**
++	 * @plane_degamma_lut_property: Optional Plane property to set the LUT used to
++	 * convert the framebuffer's colors to linear gamma.
++	 */
++	struct drm_property *plane_degamma_lut_property;
++	/**
++	 * @plane_degamma_lut_size_property: Optional Plane property for the size of
++	 * the degamma LUT as supported by the driver (read-only).
++	 */
++	struct drm_property *plane_degamma_lut_size_property;
++	/**
++	 * @plane_degamma_tf: Optional Plane property to specify a
++	 * predefined transfer function, rather than relying on a user-blob LUT.
++	 * If both VALVE1_PLANE_DEGAMMA_LUT and VALVE1_PLANE_DEGAMMA_TF are specified,
++	 * then VALVE1_PLANE_DEGAMMA_LUT takes priority.
++	 */
++	struct drm_property *plane_degamma_tf_property;
+ 	/**
+ 	 * @ctm_property: Optional CRTC property to set the
+ 	 * matrix used to convert colors after the lookup in the
+diff --git a/include/drm/drm_plane.h b/include/drm/drm_plane.h
+index 447e664e49d5..e1ce11f682c9 100644
+--- a/include/drm/drm_plane.h
++++ b/include/drm/drm_plane.h
+@@ -190,6 +190,22 @@ struct drm_plane_state {
+ 	 */
+ 	struct drm_property_blob *fb_damage_clips;
+ 
++	/**
++	 * @degamma_lut:
++	 *
++	 * LUT for converting plane pixel data before going into plane merger.
++	 * The blob (if not NULL) is an array of &struct drm_color_lut.
++	 */
++	struct drm_property_blob *degamma_lut;
++
++	/**
++	 * @degamma_tf:
++	 *
++	 * Pre-defined transfer function for converting plane pixel data before
++	 * going into plane merger.
++	 */
++	enum drm_transfer_function degamma_tf;
++
+ 	/**
+ 	 * @src:
+ 	 *
+-- 
+2.39.2
+

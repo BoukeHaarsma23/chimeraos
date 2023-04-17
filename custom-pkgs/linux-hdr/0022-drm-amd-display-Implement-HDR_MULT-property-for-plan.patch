@@ -1,0 +1,168 @@
+From eccf334a21d0bc562c5c1c5bcb3a13f6c1265e14 Mon Sep 17 00:00:00 2001
+From: Joshua Ashton <joshua@froggi.es>
+Date: Thu, 16 Mar 2023 12:37:07 +0000
+Subject: [PATCH 22/25] drm/amd/display: Implement HDR_MULT property for planes
+
+---
+ .../gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c   |  1 +
+ .../drm/amd/display/amdgpu_dm/amdgpu_dm_color.c |  1 +
+ drivers/gpu/drm/drm_atomic_state_helper.c       |  1 +
+ drivers/gpu/drm/drm_atomic_uapi.c               |  4 ++++
+ drivers/gpu/drm/drm_color_mgmt.c                |  3 +++
+ drivers/gpu/drm/drm_mode_config.c               |  7 +++++++
+ include/drm/drm_mode_config.h                   | 13 +++++++++++++
+ include/drm/drm_plane.h                         | 17 +++++++++++++++++
+ 8 files changed, 47 insertions(+)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+index 084e50bd9556..594f5f884fb8 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+@@ -7834,6 +7834,7 @@ static void amdgpu_dm_commit_planes(struct drm_atomic_state *state,
+ 			bundle->surface_updates[planes_count].gamma = dc_plane->gamma_correction;
+ 			bundle->surface_updates[planes_count].in_transfer_func = dc_plane->in_transfer_func;
+ 			bundle->surface_updates[planes_count].gamut_remap_matrix = &dc_plane->gamut_remap_matrix;
++			bundle->surface_updates[planes_count].hdr_mult = dc_plane->hdr_mult;
+ 		}
+ 
+ 		fill_dc_scaling_info(dm->adev, new_plane_state,
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+index 244620be728a..e09f38c4200a 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+@@ -538,6 +538,7 @@ int amdgpu_dm_update_plane_color_mgmt(struct dm_crtc_state *crtc,
+ 		degamma_lut && !__is_lut_linear(degamma_lut, degamma_size);
+ 
+ 	drm_tf = plane_state->degamma_tf;
++	dc_plane_state->hdr_mult = dc_fixpt_from_s3132(plane_state->hdr_mult);
+ 
+ 	/* Get the correct base transfer function for implicit degamma. */
+ 	switch (dc_plane_state->format) {
+diff --git a/drivers/gpu/drm/drm_atomic_state_helper.c b/drivers/gpu/drm/drm_atomic_state_helper.c
+index 9bdfaed48c85..f876f172b48c 100644
+--- a/drivers/gpu/drm/drm_atomic_state_helper.c
++++ b/drivers/gpu/drm/drm_atomic_state_helper.c
+@@ -254,6 +254,7 @@ void __drm_atomic_helper_plane_state_reset(struct drm_plane_state *plane_state,
+ 	plane_state->pixel_blend_mode = DRM_MODE_BLEND_PREMULTI;
+ 
+ 	plane_state->degamma_tf = DRM_TRANSFER_FUNCTION_DEFAULT;
++	plane_state->hdr_mult = DRM_HDR_MULT_DEFAULT;
+ 
+ 	if (plane->color_encoding_property) {
+ 		if (!drm_object_property_get_default_value(&plane->base,
+diff --git a/drivers/gpu/drm/drm_atomic_uapi.c b/drivers/gpu/drm/drm_atomic_uapi.c
+index 9795ae81bbba..14aead34059b 100644
+--- a/drivers/gpu/drm/drm_atomic_uapi.c
++++ b/drivers/gpu/drm/drm_atomic_uapi.c
+@@ -584,6 +584,8 @@ static int drm_atomic_plane_set_property(struct drm_plane *plane,
+ 		return ret;
+ 	} else if (property == config->plane_degamma_tf_property) {
+ 		state->degamma_tf = val;
++	} else if (property == config->plane_hdr_mult) {
++		state->hdr_mult = val;
+ 	} else {
+ 		drm_dbg_atomic(plane->dev,
+ 			       "[PLANE:%d:%s] unknown property [PROP:%d:%s]]\n",
+@@ -648,6 +650,8 @@ drm_atomic_plane_get_property(struct drm_plane *plane,
+ 		*val = (state->degamma_lut) ? state->degamma_lut->base.id : 0;
+ 	} else if (property == config->plane_degamma_tf_property) {
+ 		*val = state->degamma_tf;
++	} else if (property == config->plane_hdr_mult) {
++		*val = state->hdr_mult;
+ 	} else {
+ 		return -EINVAL;
+ 	}
+diff --git a/drivers/gpu/drm/drm_color_mgmt.c b/drivers/gpu/drm/drm_color_mgmt.c
+index d47121fddc0a..acece0e3970c 100644
+--- a/drivers/gpu/drm/drm_color_mgmt.c
++++ b/drivers/gpu/drm/drm_color_mgmt.c
+@@ -214,6 +214,9 @@ void drm_plane_enable_color_mgmt(struct drm_plane *plane,
+ 		drm_object_attach_property(&plane->base,
+ 					   config->plane_degamma_tf_property,
+ 					   DRM_TRANSFER_FUNCTION_DEFAULT);
++		drm_object_attach_property(&plane->base,
++					   config->plane_hdr_mult,
++					   DRM_HDR_MULT_DEFAULT);
+ 	}
+ }
+ EXPORT_SYMBOL(drm_plane_enable_color_mgmt);
+diff --git a/drivers/gpu/drm/drm_mode_config.c b/drivers/gpu/drm/drm_mode_config.c
+index 5f04eaede48f..39e6d013a1ac 100644
+--- a/drivers/gpu/drm/drm_mode_config.c
++++ b/drivers/gpu/drm/drm_mode_config.c
+@@ -380,6 +380,13 @@ static int drm_mode_create_standard_properties(struct drm_device *dev)
+ 		return -ENOMEM;
+ 	dev->mode_config.plane_degamma_tf_property = prop;
+ 
++	prop = drm_property_create_range(dev,
++			0,
++			"VALVE1_PLANE_HDR_MULT", 0, U64_MAX);
++	if (!prop)
++		return -ENOMEM;
++	dev->mode_config.plane_hdr_mult = prop;
++
+ 	prop = drm_property_create(dev,
+ 			DRM_MODE_PROP_BLOB,
+ 			"CTM", 0);
+diff --git a/include/drm/drm_mode_config.h b/include/drm/drm_mode_config.h
+index 55c575b6bb61..b9ef26d0fce6 100644
+--- a/include/drm/drm_mode_config.h
++++ b/include/drm/drm_mode_config.h
+@@ -809,6 +809,19 @@ struct drm_mode_config {
+ 	 * then VALVE1_PLANE_DEGAMMA_LUT takes priority.
+ 	 */
+ 	struct drm_property *plane_degamma_tf_property;
++	/**
++	 * @plane_hdr_mult:
++	 *
++	 * Multiplier to 'gain' the plane.
++	 * When PQ is decoded using the fixed func transfer function to the internal FP16 fb,
++	 * 1.0 -> 80 nits (on AMD at least)
++	 * When sRGB is decoded, 1.0 -> 1.0, obviously.
++	 * Therefore, 1.0 multiplier = 80 nits for SDR content.
++	 * So if you want, 203 nits for SDR content, pass in (203.0 / 80.0).
++	 *
++	 * Format is S31.32 sign-magnitude.
++	 */
++	struct drm_property *plane_hdr_mult;
+ 	/**
+ 	 * @ctm_property: Optional CRTC property to set the
+ 	 * matrix used to convert colors after the lookup in the
+diff --git a/include/drm/drm_plane.h b/include/drm/drm_plane.h
+index e1ce11f682c9..4da212a53df4 100644
+--- a/include/drm/drm_plane.h
++++ b/include/drm/drm_plane.h
+@@ -40,6 +40,9 @@ enum drm_scaling_filter {
+ 	DRM_SCALING_FILTER_NEAREST_NEIGHBOR,
+ };
+ 
++// 1.0 in S31.32
++#define DRM_HDR_MULT_DEFAULT (0x100000000LL)
++
+ /**
+  * struct drm_plane_state - mutable plane state
+  *
+@@ -206,6 +209,20 @@ struct drm_plane_state {
+ 	 */
+ 	enum drm_transfer_function degamma_tf;
+ 
++	/**
++	 * @hdr_mult:
++	 *
++	 * Multiplier to 'gain' the plane.
++	 * When PQ is decoded using the fixed func transfer function to the internal FP16 fb,
++	 * 1.0 -> 80 nits (on AMD at least)
++	 * When sRGB is decoded, 1.0 -> 1.0, obviously.
++	 * Therefore, 1.0 multiplier = 80 nits for SDR content.
++	 * So if you want, 203 nits for SDR content, pass in (203.0 / 80.0).
++	 *
++	 * Format is S31.32 sign-magnitude.
++	 */
++	__u64 hdr_mult;
++
+ 	/**
+ 	 * @src:
+ 	 *
+-- 
+2.39.2
+

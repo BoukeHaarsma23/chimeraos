@@ -1,0 +1,255 @@
+From 2f86dda8e2aeb6df8841bb17ffa70b3e76102144 Mon Sep 17 00:00:00 2001
+From: Joshua Ashton <joshua@froggi.es>
+Date: Thu, 16 Mar 2023 13:14:54 +0000
+Subject: [PATCH 23/25] drm/amd/display: Implement regamma tf
+
+---
+ .../amd/display/amdgpu_dm/amdgpu_dm_color.c   | 82 +++++++++++++------
+ drivers/gpu/drm/drm_atomic_uapi.c             |  7 ++
+ drivers/gpu/drm/drm_color_mgmt.c              |  3 +
+ drivers/gpu/drm/drm_mode_config.c             |  9 ++
+ include/drm/drm_crtc.h                        |  7 ++
+ include/drm/drm_mode_config.h                 |  6 ++
+ 6 files changed, 90 insertions(+), 24 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+index e09f38c4200a..14e8701df56d 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+@@ -73,6 +73,8 @@
+ 
+ #define MAX_DRM_LUT_VALUE 0xFFFF
+ 
++static enum dc_transfer_func_predefined drm_tf_to_dc_tf(enum drm_transfer_function drm_tf);
++
+ /**
+  * amdgpu_dm_init_color_mod - Initialize the color module.
+  *
+@@ -266,12 +268,14 @@ static int __set_output_tf(struct dc_transfer_func *func,
+ 
+ 	cal_buffer.buffer_index = -1;
+ 
+-	gamma = dc_create_gamma();
+-	if (!gamma)
+-		return -ENOMEM;
++	if (lut_size) {
++		gamma = dc_create_gamma();
++		if (!gamma)
++			return -ENOMEM;
+ 
+-	gamma->num_entries = lut_size;
+-	__drm_lut_to_dc_gamma(lut, gamma, false);
++		gamma->num_entries = lut_size;
++		__drm_lut_to_dc_gamma(lut, gamma, false);
++	}
+ 
+ 	if (func->tf == TRANSFER_FUNCTION_LINEAR) {
+ 		/*
+@@ -279,24 +283,58 @@ static int __set_output_tf(struct dc_transfer_func *func,
+ 		 * on top of a linear input. But degamma params can be used
+ 		 * instead to simulate this.
+ 		 */
+-		gamma->type = GAMMA_CUSTOM;
++		if (gamma)
++			gamma->type = GAMMA_CUSTOM;
+ 		res = mod_color_calculate_degamma_params(NULL, func,
+-							gamma, true);
++							gamma, gamma != NULL);
+ 	} else {
+ 		/*
+ 		 * Assume sRGB. The actual mapping will depend on whether the
+ 		 * input was legacy or not.
+ 		 */
+-		gamma->type = GAMMA_CS_TFM_1D;
+-		res = mod_color_calculate_regamma_params(func, gamma, false,
++		if (gamma)
++			gamma->type = GAMMA_CS_TFM_1D;
++		res = mod_color_calculate_regamma_params(func, gamma, gamma != NULL,
+ 							 has_rom, NULL, &cal_buffer);
+ 	}
+ 
+-	dc_gamma_release(&gamma);
++	if (gamma)
++		dc_gamma_release(&gamma);
+ 
+ 	return res ? 0 : -ENOMEM;
+ }
+ 
++static int amdgpu_dm_set_atomic_regamma(struct dc_stream_state *stream,
++					const struct drm_color_lut *regamma_lut,
++					uint32_t regamma_size, bool has_rom,
++					enum dc_transfer_func_predefined tf)
++{
++	int ret = 0;
++
++	if (regamma_size || tf != TRANSFER_FUNCTION_LINEAR) {
++		/* CRTC RGM goes into RGM LUT.
++		 *
++		 * Note: here there is no implicit sRGB regamma. We are using
++		 * degamma calculation from color module to calculate the curve
++		 * from a linear base.
++		 */
++		stream->out_transfer_func->type = TF_TYPE_DISTRIBUTED_POINTS;
++		stream->out_transfer_func->tf = tf;
++
++		ret = __set_output_tf(stream->out_transfer_func, regamma_lut,
++				      regamma_size, has_rom);
++	} else {
++		/*
++		 * No CRTC RGM means we can just put the block into bypass
++		 * since we don't have any plane level adjustments using it.
++		 */
++		stream->out_transfer_func->type = TF_TYPE_BYPASS;
++		stream->out_transfer_func->tf = TRANSFER_FUNCTION_LINEAR;
++	}
++
++	return ret;
++}
++
+ /**
+  * __set_input_tf - calculates the input transfer function based on expected
+  * input space.
+@@ -395,6 +433,7 @@ int amdgpu_dm_update_crtc_color_mgmt(struct dm_crtc_state *crtc)
+ 	const struct drm_color_lut *degamma_lut, *regamma_lut;
+ 	uint32_t degamma_size, regamma_size;
+ 	bool has_regamma, has_degamma;
++	enum dc_transfer_func_predefined tf;
+ 	bool is_legacy;
+ 	int r;
+ 
+@@ -413,6 +452,8 @@ int amdgpu_dm_update_crtc_color_mgmt(struct dm_crtc_state *crtc)
+ 
+ 	is_legacy = regamma_size == MAX_COLOR_LEGACY_LUT_ENTRIES;
+ 
++	tf = drm_tf_to_dc_tf(crtc->base.regamma_tf);
++
+ 	/* Reset all adjustments. */
+ 	crtc->cm_has_degamma = false;
+ 	crtc->cm_is_degamma_srgb = false;
+@@ -438,22 +479,15 @@ int amdgpu_dm_update_crtc_color_mgmt(struct dm_crtc_state *crtc)
+ 				    regamma_size, has_rom);
+ 		if (r)
+ 			return r;
+-	} else if (has_regamma) {
+-		/* If atomic regamma, CRTC RGM goes into RGM LUT. */
+-		stream->out_transfer_func->type = TF_TYPE_DISTRIBUTED_POINTS;
+-		stream->out_transfer_func->tf = TRANSFER_FUNCTION_LINEAR;
+-
+-		r = __set_output_tf(stream->out_transfer_func, regamma_lut,
+-				    regamma_size, has_rom);
+-		if (r)
+-			return r;
+ 	} else {
+-		/*
+-		 * No CRTC RGM means we can just put the block into bypass
+-		 * since we don't have any plane level adjustments using it.
++		/* Note: OGAM is disabled if 3D LUT is successfully programmed.
++		 * See params and set_output_gamma in
++		 * dcn30_set_output_transfer_func()
+ 		 */
+-		stream->out_transfer_func->type = TF_TYPE_BYPASS;
+-		stream->out_transfer_func->tf = TRANSFER_FUNCTION_LINEAR;
++		regamma_size = has_regamma ? regamma_size : 0;
++		r = amdgpu_dm_set_atomic_regamma(stream, regamma_lut, regamma_size, has_rom, tf);
++		if (r)
++			return r;
+ 	}
+ 
+ 	/*
+diff --git a/drivers/gpu/drm/drm_atomic_uapi.c b/drivers/gpu/drm/drm_atomic_uapi.c
+index 14aead34059b..2c09b23a75d0 100644
+--- a/drivers/gpu/drm/drm_atomic_uapi.c
++++ b/drivers/gpu/drm/drm_atomic_uapi.c
+@@ -450,6 +450,11 @@ static int drm_atomic_crtc_set_property(struct drm_crtc *crtc,
+ 		set_out_fence_for_crtc(state->state, crtc, fence_ptr);
+ 	} else if (property == crtc->scaling_filter_property) {
+ 		state->scaling_filter = val;
++	} else if (property == config->crtc_regamma_tf_property) {
++		if (state->regamma_tf != val) {
++			state->regamma_tf = val;
++			state->color_mgmt_changed |= 1;
++		}
+ 	} else if (crtc->funcs->atomic_set_property) {
+ 		return crtc->funcs->atomic_set_property(crtc, state, property, val);
+ 	} else {
+@@ -487,6 +492,8 @@ drm_atomic_crtc_get_property(struct drm_crtc *crtc,
+ 		*val = 0;
+ 	else if (property == crtc->scaling_filter_property)
+ 		*val = state->scaling_filter;
++	else if (property == config->crtc_regamma_tf_property)
++		*val = state->regamma_tf;
+ 	else if (crtc->funcs->atomic_get_property)
+ 		return crtc->funcs->atomic_get_property(crtc, state, property, val);
+ 	else
+diff --git a/drivers/gpu/drm/drm_color_mgmt.c b/drivers/gpu/drm/drm_color_mgmt.c
+index acece0e3970c..2a7782873422 100644
+--- a/drivers/gpu/drm/drm_color_mgmt.c
++++ b/drivers/gpu/drm/drm_color_mgmt.c
+@@ -175,6 +175,9 @@ void drm_crtc_enable_color_mgmt(struct drm_crtc *crtc,
+ 		drm_object_attach_property(&crtc->base,
+ 					   config->degamma_lut_size_property,
+ 					   degamma_lut_size);
++		drm_object_attach_property(&crtc->base,
++					   config->crtc_regamma_tf_property,
++					   DRM_TRANSFER_FUNCTION_DEFAULT);
+ 	}
+ 
+ 	if (has_ctm)
+diff --git a/drivers/gpu/drm/drm_mode_config.c b/drivers/gpu/drm/drm_mode_config.c
+index 39e6d013a1ac..c70dfb5fef8d 100644
+--- a/drivers/gpu/drm/drm_mode_config.c
++++ b/drivers/gpu/drm/drm_mode_config.c
+@@ -394,6 +394,15 @@ static int drm_mode_create_standard_properties(struct drm_device *dev)
+ 		return -ENOMEM;
+ 	dev->mode_config.ctm_property = prop;
+ 
++	prop = drm_property_create_enum(dev,
++					DRM_MODE_PROP_ENUM,
++					"VALVE1_CRTC_REGAMMA_TF",
++					drm_transfer_function_enum_list,
++					ARRAY_SIZE(drm_transfer_function_enum_list));
++	if (!prop)
++		return -ENOMEM;
++	dev->mode_config.crtc_regamma_tf_property = prop;
++
+ 	prop = drm_property_create(dev,
+ 			DRM_MODE_PROP_BLOB,
+ 			"GAMMA_LUT", 0);
+diff --git a/include/drm/drm_crtc.h b/include/drm/drm_crtc.h
+index 8e1cbc75143e..a67b4a84d719 100644
+--- a/include/drm/drm_crtc.h
++++ b/include/drm/drm_crtc.h
+@@ -279,6 +279,13 @@ struct drm_crtc_state {
+ 	 */
+ 	struct drm_property_blob *gamma_lut;
+ 
++	/**
++	 * @regamma_tf:
++	 *
++	 * Pre-defined transfer function for converting internal FB -> wire encoding.
++	 */
++	enum drm_transfer_function regamma_tf;
++
+ 	/**
+ 	 * @target_vblank:
+ 	 *
+diff --git a/include/drm/drm_mode_config.h b/include/drm/drm_mode_config.h
+index b9ef26d0fce6..7052ea1397d6 100644
+--- a/include/drm/drm_mode_config.h
++++ b/include/drm/drm_mode_config.h
+@@ -822,6 +822,12 @@ struct drm_mode_config {
+ 	 * Format is S31.32 sign-magnitude.
+ 	 */
+ 	struct drm_property *plane_hdr_mult;
++	/**
++	 * @crtc_regamma_tf_property:
++	 *
++	 * Transfer function for CRTC regamma.
++	 */
++	struct drm_property *crtc_regamma_tf_property;
+ 	/**
+ 	 * @ctm_property: Optional CRTC property to set the
+ 	 * matrix used to convert colors after the lookup in the
+-- 
+2.39.2
+
