@@ -1,0 +1,236 @@
+# Maintainer: Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+
+pkgbase=linux-hdr-git
+pkgver=6.2.11.bouhaa1
+pkgrel=1
+_srctag=v6.2.11-arch1
+pkgdesc='Linux HDR (Git)'
+url="www.kernel.org"
+arch=(x86_64)
+license=(GPL2)
+makedepends=(
+  bc libelf pahole cpio perl tar xz gettext
+  xmlto python-sphinx python-sphinx_rtd_theme graphviz imagemagick texlive-latexextra
+  git
+)
+options=('!strip')
+_srcname=linux-hdr
+source=(
+  config         # the main kernel config file
+  0001-drm-connector-Drop-COLORIMETRY_NO_DATA.patch 
+  0002-drm-connector-Convert-DRM_MODE_COLORIMETRY-to-enum.patch
+  0003-drm-connector-Pull-out-common-create_colorspace_prop.patch
+  0004-drm-connector-Allow-drivers-to-pass-list-of-supporte.patch
+  0005-drm-connector-Print-connector-colorspace-in-state-de.patch
+  0006-drm-amd-display-Always-pass-connector_state-to-strea.patch
+  0007-drm-amd-display-Register-Colorspace-property-for-DP-.patch
+  0008-drm-amd-display-Set-colorspace-for-HDMI-infoframe.patch
+  0009-drm-amd-display-Send-correct-DP-colorspace-infopacke.patch
+  0010-drm-amd-display-Always-set-crtcinfo-from-create_stre.patch
+  0011-drm-amd-display-Add-support-for-explicit-BT601_YCC.patch
+  0012-drm-amd-display-Add-debugfs-for-testing-output-color.patch
+  0013-drm-amd-display-Add-default-case-for-output_color_sp.patch
+  0014-drm-amd-display-Fallback-to-2020_YCBCR-if-the-pixel-.patch
+  0015-drm-amd-display-Refactor-avi_info_frame-colorimetry-.patch
+  0016-drm-amd-display-Use-COLORIMETRYEX_BT2020YCC-for-COLO.patch
+  0017-drm-amd-display-Hook-up-content_type-property.patch
+  0018-drm-amd-display-Remove-unused-display_content_suppor.patch
+  0019-drm-Bump-DRM_OBJECT_MAX_PROPERTY-from-24-32.patch
+  0020-drm-amd-display-Support-for-degamma-transfer-functio.patch
+  0021-drm-amd-display-Add-dc_fixpt_from_s3132-helper.patch
+  0022-drm-amd-display-Implement-HDR_MULT-property-for-plan.patch
+  0023-drm-amd-display-Implement-regamma-tf.patch
+  0024-drm-amd-display-Set-sdr_ref_white_level-to-80-for-ou.patch
+  0025-drm-amd-display-Mark-plane-reset-as-required-when-HD.patch
+)
+validpgpkeys=(
+  'ABAF11C65A2970B130ABE3C479BE3E4300411886'  # Linus Torvalds
+  '647F28654894E3BD457199BE38DBBDC86092693E'  # Greg Kroah-Hartman
+  'A2FF3A36AAA56654109064AB19802F8B0D70FC30'  # Jan Alexander Steffens (heftig)
+  'C7E7849466FE2358343588377258734B41C31549'  # David Runge <dvzrv@archlinux.org>
+)
+sha256sums=(
+  'c8b3fbb7664801bebc2d2d1fdf624524865a7817d0021c55c98523cb58dee201'
+  '3d66c53b5feb80f3824b2494584fb95d53bee1d96b72ab044f498235bcbf489e'    
+  'a449e9edaac8b120e916014d9d968809025f7191aa42a09232272d31b9223a70'     
+  '40a215d02405afddf3126ec4c3c2cf1c4b666d115fa6fcdc90c1f28972752f04'  
+  '53130fb08da95d024de9676fd9223fd96be2a346db85ae427b41f645de390692'  
+  '3d1367ba99aaddd75b6e5aacfae3c69874fdde1cbab7be0143ef5589e72de678'  
+  'b846a7fc8c17ae60d475cf6cc56c62579ac62345744173b3368940c2a7880c97'  
+  '9c5c79bf854fda71f56cdadb66063b21fe95caa42a794e4a935c12572fc3ecc1'  
+  'e6ea8634331ce4b8ecddd80ef6e59a2f18b228980beb861fe52b9fbc7afecf64'  
+  '8a95415a49195d356680ebde117ae0224524f14cc8f3d812b2e062e738f331c3'  
+  'b9e444bb0400c33ee8e08815fe908f3a8414f9ca9bdbda1eafc54b78c3763835'  
+  'b94f48da430a151138e33912153227ca4df1a4562f2fa227c75f7171d5f6791c'  
+  '00f6f7d42ca34c353216fd46f632aeed8ee11b0bc986ebe0b211cf605d24a402'  
+  '94615deec56e620f0352e86479f3c9ab47485ec2eddb41b01b52c10a41412cdf'  
+  '171853318feca37989fd41e2a58482d5ba9e10956268def646e75da4d740e94b'  
+  '9a83c2142f168f1a5f573449fdb00cd421f1afd22ba104e89ccb10f7a1a1b9cb'  
+  '48d58c0e121f001857880f5d536e385af4c60789cf038f476ea1b01ae6f33e06'  
+  'ed6f89407285fbbb895a98f8ab2487ebf402ff22e17c43685e83a7061b6f2d00'      
+  'f1724f340f046985165a696491481ec0a051b7afe51a83162fc435e3a3a47495'  
+  'e4a0002b94aaa5dbba79dfef5e0bb37e8d4bd971c0f4d7ef62565535b8b51867'      
+  '6f7d0552a83fe725c1d468398a29b7d7fad9306b8a3a21954970c37d5fb79595'  
+  '89f475697c2f773667997114a35ed0527994ca73d1a2db7bd01d64ac3e4d9643'   
+  '71b87f5bb9240ed37071d36450b93c5e92a96bdfd33f17c76a53dd91d1061092'  
+  'a2d4ce4dc53b3e5ab76bc25bccdf9140c219f7e572c23b4b25db91ee341b88e4'   
+  'e418f49af48c5da762f639149500ff81ad39ada34f85a9bab9413fb9faebd63a'  
+  '01a5eaacd4a018d42a841f0647e1af4fd3926935130040f65d5433f68abcb0b8'  
+)
+
+export KBUILD_BUILD_HOST=archlinux
+export KBUILD_BUILD_USER=$pkgbase
+export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
+
+prepare() {
+  rm -rf "$_srcname" | true # PIKAUR DOING WEIRD THINGS?
+  git clone --depth 1  --branch="$_srctag" https://github.com/archlinux/linux.git "$_srcname"
+  cd $_srcname
+
+  echo "Setting version..."
+  scripts/setlocalversion --save-scmversion
+  echo "-$pkgrel" > localversion.10-pkgrel
+  echo "${pkgbase#linux}" > localversion.20-pkgname
+
+  local src
+  for src in "${source[@]}"; do
+    src="${src%%::*}"
+    src="${src##*/}"
+    [[ $src = *.patch ]] || continue
+    echo "Applying patch $src..."
+    patch -Np1 < "../$src"
+  done
+
+  echo "Setting config..."
+  cp ../config .config
+  make olddefconfig
+  diff -u ../config .config || :
+
+  make -s kernelrelease > version
+  echo "Prepared $pkgbase version $(<version)"
+}
+
+build() {
+  cd $_srcname
+  make all -j8
+}
+
+_package() {
+  pkgdesc="The $pkgdesc kernel and modules"
+  depends=(coreutils kmod initramfs)
+  optdepends=('wireless-regdb: to set the correct wireless channels of your country'
+              'linux-firmware: firmware images needed for some devices')
+  provides=(VIRTUALBOX-GUEST-MODULES WIREGUARD-MODULE KSMBD-MODULE)
+  replaces=(virtualbox-guest-modules-arch wireguard-arch)
+
+  cd $_srcname
+  local kernver="$(<version)"
+  local modulesdir="$pkgdir/usr/lib/modules/$kernver"
+
+  echo "Installing boot image..."
+  # systemd expects to find the kernel here to allow hibernation
+  # https://github.com/systemd/systemd/commit/edda44605f06a41fb86b7ab8128dcf99161d2344
+  install -Dm644 "$(make -s image_name)" "$modulesdir/vmlinuz"
+
+  # Used by mkinitcpio to name the kernel
+  echo "$pkgbase" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
+
+  echo "Installing modules..."
+  make INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 \
+    DEPMOD=/doesnt/exist modules_install  # Suppress depmod
+
+  # remove build and source links
+  rm "$modulesdir"/{source,build}
+}
+
+_package-headers() {
+  pkgdesc="Headers and scripts for building modules for the $pkgdesc kernel"
+  depends=(pahole)
+
+  cd $_srcname
+  local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
+
+  echo "Installing build files..."
+  install -Dt "$builddir" -m644 .config Makefile Module.symvers System.map \
+    localversion.* version vmlinux
+  install -Dt "$builddir/kernel" -m644 kernel/Makefile
+  install -Dt "$builddir/arch/x86" -m644 arch/x86/Makefile
+  cp -t "$builddir" -a scripts
+
+  # required when STACK_VALIDATION is enabled
+  install -Dt "$builddir/tools/objtool" tools/objtool/objtool
+
+  # required when DEBUG_INFO_BTF_MODULES is enabled
+  install -Dt "$builddir/tools/bpf/resolve_btfids" tools/bpf/resolve_btfids/resolve_btfids
+
+  echo "Installing headers..."
+  cp -t "$builddir" -a include
+  cp -t "$builddir/arch/x86" -a arch/x86/include
+  install -Dt "$builddir/arch/x86/kernel" -m644 arch/x86/kernel/asm-offsets.s
+
+  install -Dt "$builddir/drivers/md" -m644 drivers/md/*.h
+  install -Dt "$builddir/net/mac80211" -m644 net/mac80211/*.h
+
+  # https://bugs.archlinux.org/task/13146
+  install -Dt "$builddir/drivers/media/i2c" -m644 drivers/media/i2c/msp3400-driver.h
+
+  # https://bugs.archlinux.org/task/20402
+  install -Dt "$builddir/drivers/media/usb/dvb-usb" -m644 drivers/media/usb/dvb-usb/*.h
+  install -Dt "$builddir/drivers/media/dvb-frontends" -m644 drivers/media/dvb-frontends/*.h
+  install -Dt "$builddir/drivers/media/tuners" -m644 drivers/media/tuners/*.h
+
+  # https://bugs.archlinux.org/task/71392
+  install -Dt "$builddir/drivers/iio/common/hid-sensors" -m644 drivers/iio/common/hid-sensors/*.h
+
+  echo "Installing KConfig files..."
+  find . -name 'Kconfig*' -exec install -Dm644 {} "$builddir/{}" \;
+
+  echo "Removing unneeded architectures..."
+  local arch
+  for arch in "$builddir"/arch/*/; do
+    [[ $arch = */x86/ ]] && continue
+    echo "Removing $(basename "$arch")"
+    rm -r "$arch"
+  done
+
+  echo "Removing documentation..."
+  rm -r "$builddir/Documentation"
+
+  echo "Removing broken symlinks..."
+  find -L "$builddir" -type l -printf 'Removing %P\n' -delete
+
+  echo "Removing loose objects..."
+  find "$builddir" -type f -name '*.o' -printf 'Removing %P\n' -delete
+
+  echo "Stripping build tools..."
+  local file
+  while read -rd '' file; do
+    case "$(file -Sib "$file")" in
+      application/x-sharedlib\;*)      # Libraries (.so)
+        strip -v $STRIP_SHARED "$file" ;;
+      application/x-archive\;*)        # Libraries (.a)
+        strip -v $STRIP_STATIC "$file" ;;
+      application/x-executable\;*)     # Binaries
+        strip -v $STRIP_BINARIES "$file" ;;
+      application/x-pie-executable\;*) # Relocatable binaries
+        strip -v $STRIP_SHARED "$file" ;;
+    esac
+  done < <(find "$builddir" -type f -perm -u+x ! -name vmlinux -print0)
+
+  echo "Stripping vmlinux..."
+  strip -v $STRIP_STATIC "$builddir/vmlinux"
+
+  echo "Adding symlink..."
+  mkdir -p "$pkgdir/usr/src"
+  ln -sr "$builddir" "$pkgdir/usr/src/$pkgbase"
+}
+
+pkgname=("$pkgbase" "$pkgbase-headers")
+for _p in "${pkgname[@]}"; do
+  eval "package_$_p() {
+    $(declare -f "_package${_p#$pkgbase}")
+    _package${_p#$pkgbase}
+  }"
+done
+
+# vim:set ts=8 sts=2 sw=2 et:
