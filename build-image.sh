@@ -83,7 +83,7 @@ locale-gen
 pacman --noconfirm -Syy
 
 # install kernel package
-pacman --noconfirm -S "${KERNEL_PACKAGE}" "${KERNEL_PACKAGE}-headers"
+#pacman --noconfirm -S "${KERNEL_PACKAGE}" "${KERNEL_PACKAGE}-headers"
 
 # install own override packages
 pacman --noconfirm -U --overwrite '*' /own_pkgs/*
