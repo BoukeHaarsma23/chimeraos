@@ -1,0 +1,29 @@
+From 318fc7bed809513ba79d332d2d7dd9ecceac5cd0 Mon Sep 17 00:00:00 2001
+From: Joshua Ashton <joshua@froggi.es>
+Date: Thu, 16 Mar 2023 14:14:39 +0000
+Subject: [PATCH 24/25] drm/amd/display: Set sdr_ref_white_level to 80 for
+ out_transfer_func
+
+Otherwise this is just initialized to 0.
+
+This needs to actually have a value so that compute_curve can work
+for PQ EOTF.
+---
+ drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+index 14e8701df56d..c85b78c1f5d1 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+@@ -320,6 +320,7 @@ static int amdgpu_dm_set_atomic_regamma(struct dc_stream_state *stream,
+ 		 */
+ 		stream->out_transfer_func->type = TF_TYPE_DISTRIBUTED_POINTS;
+ 		stream->out_transfer_func->tf = tf;
++		stream->out_transfer_func->sdr_ref_white_level = 80; /* hardcoded for now */
+ 
+ 		ret = __set_output_tf(stream->out_transfer_func, regamma_lut,
+ 				      regamma_size, has_rom);
+-- 
+2.39.2
+

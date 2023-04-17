@@ -1,0 +1,25 @@
+From 8e9573ed15deec7eb4e3dff528531280b419aafa Mon Sep 17 00:00:00 2001
+From: Joshua Ashton <joshua@froggi.es>
+Date: Fri, 17 Mar 2023 13:18:20 +0000
+Subject: [PATCH 19/25] drm: Bump DRM_OBJECT_MAX_PROPERTY from 24 -> 32
+
+---
+ include/drm/drm_mode_object.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/drm/drm_mode_object.h b/include/drm/drm_mode_object.h
+index 912f1e415685..99c75653325e 100644
+--- a/include/drm/drm_mode_object.h
++++ b/include/drm/drm_mode_object.h
+@@ -60,7 +60,7 @@ struct drm_mode_object {
+ 	void (*free_cb)(struct kref *kref);
+ };
+ 
+-#define DRM_OBJECT_MAX_PROPERTY 24
++#define DRM_OBJECT_MAX_PROPERTY 32
+ /**
+  * struct drm_object_properties - property tracking for &drm_mode_object
+  */
+-- 
+2.39.2
+
