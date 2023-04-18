@@ -14,66 +14,25 @@ on:
       - 'master'
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    name: Changes check
-    # Required permissions
-    permissions:
-      pull-requests: read
-    outputs:
-      require-rebuild: ${{ steps.filter.outputs.require-rebuild }}
-      tag-exist: ${{ steps.tagcheck.outputs.exists }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with:
-          filters: |
-            require-rebuild:
-              - 'Dockerfile'
-              - 'manifest'
-              - 'pkgs/**'
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-      - name: Check if tag exists
-        id: tagcheck
-        run: |
-          if docker manifest inspect ${{ steps.meta.outputs.tags }} >/dev/null; then
-              echo "Tag does exist"
-              echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-              echo "Tag does not exist"
-              echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  build-docker-image:
-    name: Build and publish docker container
-    needs: changes
-    if: ${{ needs.changes.outputs.require-rebuild == 'true' || needs.changes.outputs.tag-exist == 'false'}}
-    uses: ./.github/workflows/build.yml
-
   list-pkgbuilds:
     name: List AUR packages
     runs-on: ubuntu-latest
     outputs:
       aur-pkgs: ${{ steps.set-aur-pkgs.outputs.matrix }}
       custom-pkgs: ${{ steps.set-aur-pkgs.outputs.custom }}
+      pkgs: ${{ steps.set-aur-pkgs.outputs.pkgs }}
     steps:
       - uses: actions/checkout@v3
       - id: set-aur-pkgs
         run: |
          source ./manifest ; echo "matrix=$(echo ${AUR_PACKAGES} | jq -R -s -c 'split(" ")')" >> $GITHUB_OUTPUT
          echo "custom=$(ls -d custom-pkgs/*/ | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+         echo "pkgs=$(ls -d pkgs/*/ | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
         shell: bash
 
   aur-pkgbuild:
     needs:
-     - build-docker-image
      - list-pkgbuilds
-    if: ${{ !cancelled() && (success() || failure() || needs.build-docker-image.result == 'skipped') && (needs.build-docker-image.result != 'failed') }}
     name: Build AUR package
     runs-on: ubuntu-latest
     strategy:
@@ -99,9 +58,7 @@ jobs:
 
   custom-pkgbuild:
     needs:
-     - build-docker-image
      - list-pkgbuilds
-    if: ${{ !cancelled() && (success() || failure() || needs.build-docker-image.result == 'skipped') && (needs.build-docker-image.result != 'failed') }}
     name: Build CUSTOM package
     runs-on: ubuntu-latest
     strategy:
@@ -133,12 +90,45 @@ jobs:
             name: Custom-packages
             path: custom-pkgs/*.pkg.tar*
 
+  pkgbuild:
+    needs:
+     - list-pkgbuilds
+    name: Build package
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        package: ${{ fromJson(needs.list-pkgbuilds.outputs.pkgs) }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache package
+        id: cache
+        uses: actions/cache@v3
+        with:
+          key: build-${{ matrix.package }}-${{ hashFiles(format('{0}/PKGBUILD', matrix.package)) }}
+          path: pkgs/
+      - if: ${{ steps.cache.outputs.cache-hit != 'true'}}
+        name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - if: ${{ steps.cache.outputs.cache-hit != 'true'}}
+        name: Build packages
+        run: |
+          docker pull ${{ steps.meta.outputs.tags }}
+          docker run --rm -v $(pwd):/workdir --entrypoint=/workdir/pkgs/build-package.sh ${{ steps.meta.outputs.tags }} ${{ matrix.package }}
+      - name: Upload Package Archives
+        uses: actions/upload-artifact@v3
+        with:
+            name: Packages
+            path: pkgs/*.pkg.tar*
+
   build:
     needs:
-     - build-docker-image
      - aur-pkgbuild
      - custom-pkgbuild
-    if: ${{ !cancelled() && (success() || failure() || needs.build-docker-image.result == 'skipped')  && (needs.build-docker-image.result != 'failed') }}
+     - pkgbuild
     name: Build ChimeraOS image
     runs-on: ubuntu-latest
     permissions:
@@ -164,6 +154,10 @@ jobs:
             name: Custom-packages
             # Just put in AUR package folder so no modification of build scripts are needed
             path: aur-pkgs/
+      - uses: actions/download-artifact@v3
+        with:
+            name: Packages
+            path: pkgs/
       - name: Build system image
         id: build_image
         run: |
