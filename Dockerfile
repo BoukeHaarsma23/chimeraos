@@ -39,8 +39,4 @@ ENV BUILD_USER "build"
 ENV GNUPGHOME  "/etc/pacman.d/gnupg"
 # Built image will be moved here. This should be a host mount to get the output.
 ENV OUTPUT_DIR /output
-
-COPY pkgs /packages
-RUN /packages/build-packages.sh
-
 WORKDIR /workdir
