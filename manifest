@@ -23,7 +23,6 @@ export PACKAGES="\
 	bluez-hid2hci \
 	bluez-plugins \
 	bluez-utils \
-	broadcom-wl-dkms \
 	cifs-utils \
 	diffutils \
 	dkms \
@@ -53,10 +52,6 @@ export PACKAGES="\
 	gst-plugin-pipewire \
 	haveged \
 	htop \
-	intel-gpu-tools \
-	intel-media-driver \
-	intel-ucode \
-	intel-undervolt \
 	lib32-curl \
 	lib32-fontconfig \
 	lib32-freetype2 \
@@ -66,12 +61,8 @@ export PACKAGES="\
 	lib32-libxinerama \
 	lib32-libxcrypt-compat \
 	lib32-libva \
-	lib32-libva-intel-driver \
 	lib32-libva-mesa-driver \
-	lib32-libva-vdpau-driver \
 	lib32-mesa \
-	lib32-mesa-vdpau \
-	lib32-nvidia-utils \
 	lib32-openal \
 	lib32-pipewire \
 	lib32-systemd \
@@ -104,7 +95,6 @@ export PACKAGES="\
 	libxss \
 	lightdm \
 	linux-firmware \
-	liquidctl \
 	logrotate \
 	lshw \
 	mesa \
@@ -115,9 +105,6 @@ export PACKAGES="\
 	networkmanager \
 	nfs-utils \
 	nss-mdns \
-	nvidia-dkms \
-	nvidia-prime \
-	nvidia-utils \
 	openal \
 	openssh \
 	pipewire \
@@ -147,7 +134,6 @@ export PACKAGES="\
 	wget \
 	which \
 	wireplumber \
-	wqy-zenhei \
 	xdg-desktop-portal \
 	xdg-desktop-portal-gnome \
 	xdg-desktop-portal-wlr \
@@ -162,13 +148,9 @@ export PACKAGE_OVERRIDES="\
 "
 
 export AUR_PACKAGES="\
-	ayaled \
-	asus-cirrus-firmware-git \
-	bcm20702a1-firmware \
 	boxtron \
 	chimera \
 	chimeraos-device-quirks-git \
-	downgrade \
 	frzr \
 	gamescope-plus \
 	gamescope-session-git \
@@ -184,16 +166,9 @@ export AUR_PACKAGES="\
 	nintendo-udev \
 	opengamepadui-bin \
 	opengamepadui-session-git \
-	oxp-sensors-dkms-git \
 	pikaur \
 	python-vdf \
-	r8152-dkms \
 	retroarch-autoconfig-udev-git \
-	rtl8812au-dkms-git \
-	rtl8814au-dkms-git \
-	rtl88x2bu-dkms-git \
-	rtl8821au-dkms-git \
-	rtw89-dkms-git \
 	ryzenadj-git \
 	ryzenadj-controller-git \
 	rz608-fix-git \
@@ -293,7 +268,4 @@ postinstallhook() {
 
 	# force -steamdeck option in desktop mode to prevent constant steam updates
 	sed -i 's,Exec=/usr/bin/steam-runtime,Exec=/usr/bin/steam-runtime -steamdeck,' /usr/share/applications/steam.desktop
-
-	# set permissions for intel_gpu_top and mangohud
-	setcap cap_perfmon=+ep /usr/bin/intel_gpu_top
 }
