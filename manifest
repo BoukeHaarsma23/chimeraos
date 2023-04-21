@@ -137,12 +137,11 @@ export AUR_PACKAGES="\
 	chimera \
 	chimeraos-device-quirks-git \
 	frzr \
-	gamescope-plus \
+	gamescope-git \
 	gamescope-session-git \
 	handygccs-git \
 	hhfc-git \
 	legendary \
-	lib32-gamescope-plus \
 	libretro-dosbox-pure-git \
 	libretro-opera-git \
 	libretro-prosystem-git \
