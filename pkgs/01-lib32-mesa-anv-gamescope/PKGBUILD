@@ -18,20 +18,14 @@ makedepends=('python-mako' 'lib32-libxml2' 'lib32-expat' 'lib32-libx11' 'xorgpro
 url="https://www.mesa3d.org/"
 license=('custom')
 source=(https://mesa.freedesktop.org/archive/mesa-${pkgver}.tar.xz
-        0001-anv-gamescope.patch
         LICENSE)
 sha256sums=('SKIP'
-            '12bbd2af9d29f8abb531a735e253a2a92020c37adf8619e06f197f58331b5bba'
             '7052ba73bb07ea78873a2431ee4e828f4e72bda7d176d07f770fa48373dec537')
 b2sums=('SKIP'
-        '1e1841e1bbb104a90f23961ae4cce0739d2dc6692f2574c454aaf425e4a89211141b2fc6e5acbbf7bc877e4bf03b8a45cea9df5cf688bfe587e1238148f98555'
         '1ecf007b82260710a7bf5048f47dd5d600c168824c02c595af654632326536a6527fbe0738670ee7b921dd85a70425108e0f471ba85a8e1ca47d294ad74b4adb')
 
 prepare() {
   cd mesa-$pkgver
-
-  # Patch for Gamescope compatibility
-  patch -Np1 -i ../0001-anv-gamescope.patch
 }
 
 build() {
