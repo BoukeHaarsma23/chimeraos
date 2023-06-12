@@ -34,3 +34,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      - name: download packages
+        run: |
+          mkdir -p output
+          docker run -u root --rm --entrypoint=/workdir/utils/download-packages.sh -v $(pwd):/workdir -v $(pwd)/output:/output ${{ steps.meta.outputs.tags }}
+      - name: Upload Packages
+        uses: actions/upload-artifact@v3
+        with:
+            name: Packages
+            path: output/*.pkg.tar*
