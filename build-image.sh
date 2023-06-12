@@ -82,22 +82,11 @@ pacman-key --populate
 echo "LANG=en_US.UTF-8" > /etc/locale.conf
 locale-gen
 
-
-# update package databases
-pacman --noconfirm -Syy
-
-# install kernel package
-pacman --noconfirm -S "${KERNEL_PACKAGE}" "${KERNEL_PACKAGE}-headers"
-
 # install own override packages
 pacman --noconfirm -U --overwrite '*' /own_pkgs/*
 rm -rf /var/cache/pacman/pkg
 
-# install packages
-pacman --noconfirm -S --overwrite '*' ${PACKAGES}
-rm -rf /var/cache/pacman/pkg
-
-# install AUR packages
+# install (AUR) packages
 pacman --noconfirm -U --overwrite '*' /extra_pkgs/*
 rm -rf /var/cache/pacman/pkg
 
