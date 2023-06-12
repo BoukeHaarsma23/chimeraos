@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - master
+      - 'feature/pre-cache-packages'
   pull_request:
     branches:
       - 'master'
