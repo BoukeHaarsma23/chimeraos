@@ -1,0 +1,169 @@
+From 8f9d0ad40ae0782cda7ab164f20e6e28301d9216 Mon Sep 17 00:00:00 2001
+From: Melissa Wen <mwen@igalia.com>
+Date: Tue, 23 May 2023 21:15:05 -0100
+Subject: [PATCH 24/42] drm/amd/display: add CRTC 3D LUT support
+
+Wire up DC 3D LUT to DM CRTC color management (post-blending). On AMD
+display HW, we have to set a shaper LUT to delinearize or normalize the
+color space before applying a 3D LUT (since we have a reduced number of
+LUT entries). Therefore, we map DC shaper LUT to DM CRTC color mgmt in
+the next patch.
+
+Signed-off-by: Melissa Wen <mwen@igalia.com>
+---
+ .../gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c |  6 ++
+ .../gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h | 17 +++++
+ .../amd/display/amdgpu_dm/amdgpu_dm_color.c   | 68 ++++++++++++++++++-
+ 3 files changed, 90 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+index ada88850068c..f578442b7564 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+@@ -9940,6 +9940,12 @@ static int amdgpu_dm_atomic_check(struct drm_device *dev,
+ 			goto fail;
+ 		}
+ 
++		ret = amdgpu_dm_verify_lut3d_size(adev, new_crtc_state);
++		if (ret) {
++			drm_dbg_driver(dev, "amdgpu_dm_verify_lut_sizes() failed\n");
++			goto fail;
++		}
++
+ 		if (!new_crtc_state->enable)
+ 			continue;
+ 
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
+index f5229d0c6dd8..b79cd956e6c5 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
+@@ -798,6 +798,21 @@ struct dm_crtc_state {
+ 
+ 	int abm_level;
+ 
++	/* AMD driver-private CRTC color management
++	 *
++	 * DRM provides CRTC degamma/ctm/gamma color mgmt features, but AMD HW
++	 * has a larger set of post-blending color calibration. Here, DC MPC
++	 * color caps are wired up to DM CRTC state:
++	 */
++	/**
++	 * @lut3d:
++	 *
++	 * Post-blending 3D Lookup table for converting pixel data. When
++	 * supported by HW (DCN 3+), it is positioned just before post-blending
++	 * regamma and always assumes a preceding shaper LUT. The blob (if not
++	 * NULL) is an array of &struct drm_color_lut.
++	 */
++	struct drm_property_blob *lut3d;
+         /**
+ 	 * @regamma_tf:
+ 	 *
+@@ -871,6 +886,8 @@ void amdgpu_dm_trigger_timing_sync(struct drm_device *dev);
+ /* 3D LUT max size is 17x17x17 */
+ #define MAX_COLOR_3DLUT_ENTRIES 4913
+ #define MAX_COLOR_3DLUT_BITDEPTH 12
++int amdgpu_dm_verify_lut3d_size(struct amdgpu_device *adev,
++				const struct drm_crtc_state *crtc_state);
+ /* 1D LUT size */
+ #define MAX_COLOR_LUT_ENTRIES 4096
+ /* Legacy gamm LUT users such as X doesn't like large LUT sizes */
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+index a8b507e3cac8..f5ad00680699 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+@@ -523,6 +523,57 @@ static int amdgpu_dm_atomic_shaper_lut3d(struct dc *dc,
+ 	stream->func_shaper = func_shaper;
+ 	stream->lut3d_func = lut3d_func;
+ 
++	if (!acquire)
++		return 0;
++
++	amdgpu_dm_atomic_lut3d(drm_lut3d, drm_lut3d_size, lut3d_func);
++
++	return amdgpu_dm_atomic_shaper_lut(func_shaper);
++}
++
++/**
++ * amdgpu_dm_lut3d_size - get expected size according to hw color caps
++ * @adev: amdgpu device
++ * @lut_size: default size
++ *
++ * Return:
++ * lut_size if DC 3D LUT is supported, zero otherwise.
++ */
++static uint32_t amdgpu_dm_get_lut3d_size(struct amdgpu_device *adev,
++					 uint32_t lut_size)
++{
++	return adev->dm.dc->caps.color.mpc.num_3dluts ? lut_size : 0;
++}
++
++/**
++ * amdgpu_dm_verify_lut3d_size - verifies if 3D LUT is supported and if DRM 3D
++ * LUT matches the hw supported size
++ * @adev: amdgpu device
++ * @crtc_state: the DRM CRTC state
++ *
++ * Verifies if post-blending (MPC) 3D LUT is supported by the HW (DCN 3.0 or
++ * newer) and if the DRM 3D LUT matches the supported size.
++ *
++ * Returns:
++ * 0 on success. -EINVAL if lut size are invalid.
++ */
++int amdgpu_dm_verify_lut3d_size(struct amdgpu_device *adev,
++				const struct drm_crtc_state *crtc_state)
++{
++	const struct drm_color_lut *lut3d = NULL;
++	struct dm_crtc_state *acrtc_state = to_dm_crtc_state(crtc_state);
++	uint32_t exp_size, size;
++
++	exp_size = amdgpu_dm_get_lut3d_size(adev, MAX_COLOR_3DLUT_ENTRIES);
++
++	lut3d = __extract_blob_lut(acrtc_state->lut3d, &size);
++
++	if (lut3d && size != exp_size) {
++		drm_dbg(&adev->ddev, "Invalid 3D LUT size. Should be %u but got %u.\n",
++			exp_size, size);
++		return -EINVAL;
++	}
++
+ 	return 0;
+ }
+ 
+@@ -598,6 +649,14 @@ int amdgpu_dm_update_crtc_color_mgmt(struct dm_crtc_state *crtc,
+ 	enum dc_transfer_func_predefined tf = TRANSFER_FUNCTION_LINEAR;
+ 	bool is_legacy;
+ 	int r;
++	const struct drm_color_lut *lut3d;
++	uint32_t lut3d_size;
++
++	r =  amdgpu_dm_verify_lut3d_size(adev, &crtc->base);
++	if (r)
++		return r;
++
++	lut3d = __extract_blob_lut(crtc->lut3d, &lut3d_size);
+ 
+ 	r = amdgpu_dm_verify_lut_sizes(&crtc->base);
+ 	if (r)
+@@ -650,10 +709,17 @@ int amdgpu_dm_update_crtc_color_mgmt(struct dm_crtc_state *crtc,
+ 		if (r)
+ 			return r;
+ 	} else {
++		/* We are not exposing CRTC 3D LUT properties yet, so DC 3D LUT
++		 * programming is expected to be set to bypass mode, since
++		 * there is no user-blob.
++		 */
++		lut3d_size = lut3d != NULL ? lut3d_size : 0;
+ 		r = amdgpu_dm_atomic_shaper_lut3d(adev->dm.dc, ctx, stream,
+-						  NULL, 0, NULL, 0);
++						  NULL, 0,
++						  lut3d, lut3d_size);
+ 		if (r)
+ 			return r;
++
+ 		/* Note: OGAM is disabled if 3D LUT is successfully programmed.
+ 		 * See params and set_output_gamma in
+ 		 * dcn30_set_output_transfer_func()
+-- 
+2.41.0
+

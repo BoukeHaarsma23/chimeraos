@@ -1,0 +1,50 @@
+From bb8ab5a5a041d25b84ea02dbcb411dd425b02b41 Mon Sep 17 00:00:00 2001
+From: Melissa Wen <mwen@igalia.com>
+Date: Tue, 23 May 2023 21:14:55 -0100
+Subject: [PATCH 11/42] drm/amd/display: add plane shaper LUT driver-specific
+ properties
+
+On AMD HW, 3D LUT always assumes a preceding shaper 1D LUT used for
+delinearizing and/or normalizing the color space before applying a 3D
+LUT.
+
+Signed-off-by: Melissa Wen <mwen@igalia.com>
+---
+ drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
+index ee9445934c99..218f1e337dc7 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
+@@ -1386,6 +1386,8 @@ dm_drm_plane_duplicate_state(struct drm_plane *plane)
+ 
+ 	dm_plane_state->sdr_boost = old_dm_plane_state->sdr_boost;
+ #endif
++	if (dm_plane_state->shaper_lut)
++		drm_property_blob_get(dm_plane_state->shaper_lut);
+ 	if (dm_plane_state->lut3d)
+ 		drm_property_blob_get(dm_plane_state->lut3d);
+ 
+@@ -1466,6 +1468,8 @@ static void dm_drm_plane_destroy_state(struct drm_plane *plane,
+ #endif
+ 	if (dm_plane_state->lut3d)
+ 		drm_property_blob_put(dm_plane_state->lut3d);
++	if (dm_plane_state->shaper_lut)
++		drm_property_blob_put(dm_plane_state->shaper_lut);
+ 
+ 	if (dm_plane_state->dc_state)
+ 		dc_plane_state_release(dm_plane_state->dc_state);
+@@ -1618,6 +1622,9 @@ int dm_drm_plane_get_property(struct drm_plane *plane,
+ 		*val = dm_plane_state->hdr_mult;
+ 	} else if (property == adev->mode_info.plane_shaper_tf_property) {
+ 		*val = dm_plane_state->shaper_tf;
++	} else 	if (property == adev->mode_info.plane_shaper_lut_property) {
++		*val = (dm_plane_state->shaper_lut) ?
++			dm_plane_state->shaper_lut->base.id : 0;
+ 	} else 	if (property == adev->mode_info.plane_lut3d_property) {
+ 		*val = (dm_plane_state->lut3d) ?
+ 			dm_plane_state->lut3d->base.id : 0;
+-- 
+2.41.0
+

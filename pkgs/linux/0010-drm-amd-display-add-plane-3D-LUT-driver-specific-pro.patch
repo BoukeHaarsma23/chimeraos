@@ -1,0 +1,62 @@
+From d600e35b1412dac330737461e6aab9c7aa88dce9 Mon Sep 17 00:00:00 2001
+From: Melissa Wen <mwen@igalia.com>
+Date: Tue, 23 May 2023 21:14:54 -0100
+Subject: [PATCH 10/42] drm/amd/display: add plane 3D LUT driver-specific
+ properties
+
+Add 3D LUT property for plane gamma correction using a 3D lookup table.
+Since a 3D LUT has a limited number of entries in each dimension we want
+to use them in an optimal fashion. This means using the 3D LUT in a
+colorspace that is optimized for human vision, such as sRGB, PQ, or
+another non-linear space. Therefore, userpace may need one 1D LUT
+(shaper) before it to delinearize content and another 1D LUT after 3D
+LUT (blend) to linearize content again for blending. The next patches
+add these 1D LUTs to the plane color mgmt pipeline.
+
+Signed-off-by: Melissa Wen <mwen@igalia.com>
+---
+ drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h       | 4 ++++
+ drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c | 5 +++++
+ 2 files changed, 9 insertions(+)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
+index 5fbf43998b88..346f6abeb848 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
+@@ -856,6 +856,10 @@ void amdgpu_dm_update_freesync_caps(struct drm_connector *connector,
+ 
+ void amdgpu_dm_trigger_timing_sync(struct drm_device *dev);
+ 
++/* 3D LUT max size is 17x17x17 */
++#define MAX_COLOR_3DLUT_ENTRIES 4913
++#define MAX_COLOR_3DLUT_BITDEPTH 12
++/* 1D LUT size */
+ #define MAX_COLOR_LUT_ENTRIES 4096
+ /* Legacy gamm LUT users such as X doesn't like large LUT sizes */
+ #define MAX_COLOR_LEGACY_LUT_ENTRIES 256
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
+index 090f99e3ccd3..ee9445934c99 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
+@@ -1386,6 +1386,8 @@ dm_drm_plane_duplicate_state(struct drm_plane *plane)
+ 
+ 	dm_plane_state->sdr_boost = old_dm_plane_state->sdr_boost;
+ #endif
++	if (dm_plane_state->lut3d)
++		drm_property_blob_get(dm_plane_state->lut3d);
+ 
+ 	dm_plane_state->degamma_tf = old_dm_plane_state->degamma_tf;
+ 	dm_plane_state->hdr_mult = old_dm_plane_state->hdr_mult;
+@@ -1462,6 +1464,9 @@ static void dm_drm_plane_destroy_state(struct drm_plane *plane,
+ 	drm_property_blob_put(dm_plane_state->degamma_lut);
+ 	drm_property_blob_put(dm_plane_state->ctm);
+ #endif
++	if (dm_plane_state->lut3d)
++		drm_property_blob_put(dm_plane_state->lut3d);
++
+ 	if (dm_plane_state->dc_state)
+ 		dc_plane_state_release(dm_plane_state->dc_state);
+ 
+-- 
+2.41.0
+

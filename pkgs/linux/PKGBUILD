@@ -1,0 +1,346 @@
+# Maintainer: Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+# Maintainer: Joaquín I. Aramendía (samsagax) <samsagaxg@gmail.com>
+
+pkgbase=linux-chimeraos
+pkgver=6.3.9.chos1
+pkgrel=1
+pkgdesc='Linux ChimeraOS'
+_srctag=${pkgver%.*}
+url="https://github.com/ChimeraOS/linux-chimeraos"
+arch=(x86_64)
+license=(GPL2)
+makedepends=(
+  bc
+  cpio
+  gettext
+  git
+  libelf
+  pahole
+  perl
+  tar
+  xz
+
+  # htmldocs
+  #graphviz
+  #imagemagick
+  #python-sphinx
+  #texlive-latexextra
+)
+options=('!strip')
+_srcname=chimeraos-linux
+source=(
+  "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$_srctag.tar.xz"
+  config  # the main kernel config file
+
+  # Arch Linux patches
+  0001-ZEN-Add-sysctl-and-CONFIG-to-disallow-unprivileged-C.patch
+
+  # ChimeraOS specific patches
+  0002-ChimeraOS-Linux-Kernel-v6.3.9.patch
+
+  # Fixes and additions
+  0001-drm-panel-orientation-quirks-Add-quirk-for-AYA-NEO-2.patch
+  0002-drm-panel-orientation-quirks-Add-quirk-for-AYA-NEO-F.patch
+  0003-drm-panel-orientation-quirks-Add-quirk-for-AYA-NEO-G.patch
+  0002-asus-ally-cs35l41-6.3.patch
+  0003-asus-ally-asus-hid-6.3.patch
+
+  # HDR patches
+  0001-drm-drm_mode_object-increase-max-objects-to-accommod.patch
+  0002-drm-drm_property-make-replace_property_blob_from_id-.patch
+  0003-drm-drm_plane-track-color-mgmt-changes-per-plane.patch
+  0004-drm-amd-display-add-CRTC-driver-specific-property-fo.patch
+  0005-drm-amd-display-fix-the-delta-clamping-for-shaper-LU.patch
+  0006-drm-amd-display-fix-segment-distribution-for-linear-.patch
+  0007-drm-amd-display-add-plane-degamma-TF-driver-specific.patch
+  0008-drm-amd-display-add-plane-HDR-multiplier-driver-spec.patch
+  0009-drm-amd-display-add-plane-shaper-TF-driver-private-p.patch
+  0010-drm-amd-display-add-plane-3D-LUT-driver-specific-pro.patch
+  0011-drm-amd-display-add-plane-shaper-LUT-driver-specific.patch
+  0012-drm-amd-display-update-lut3d-and-shaper-lut-to-strea.patch
+  0013-drm-amd-display-add-plane-driver-specific-properties.patch
+  0014-drm-amd-display-add-comments-to-describe-DM-crtc-col.patch
+  0015-drm-amd-display-add-plane-blend-LUT-and-TF-driver-sp.patch
+  0016-drm-amd-display-encapsulate-atomic-regamma-operation.patch
+  0017-drm-amd-display-allow-BYPASS-3D-LUT-but-keep-shaper-.patch
+  0018-drm-amd-display-dynamically-acquire-3DLUT-resources-.patch
+  0019-drm-amd-display-add-CRTC-regamma-TF-support.patch
+  0020-drm-amd-display-copy-3D-LUT-settings-from-crtc-state.patch
+  0021-drm-amd-display-handle-MPC-3D-LUT-resources-for-a-gi.patch
+  0022-drm-amd-display-decouple-steps-for-mapping-CRTC-dega.patch
+  0023-drm-amd-display-add-dc_fixpt_from_s3132-helper.patch
+  0024-drm-amd-display-add-CRTC-3D-LUT-support.patch
+  0025-drm-amd-display-add-support-for-plane-degamma-TF-and.patch
+  0026-drm-amd-display-set-sdr_ref_white_level-to-80-for-ou.patch
+  0027-drm-adm-display-add-HDR-multiplier-support.patch
+  0028-drm-amd-display-handle-empty-LUTs-in-__set_input_tf.patch
+  0029-drm-amd-display-add-plane-shaper-3D-LUT-and-shaper-T.patch
+  0030-drm-amd-display-add-DRM-plane-blend-LUT-and-TF-suppo.patch
+  0031-drm-amd-display-mark-plane-as-needing-reset-if-plane.patch
+  0032-drm-amd-display-program-DPP-shaper-and-3D-LUT-if-upd.patch
+  0033-drm-amd-display-add-CRTC-shaper-TF-support.patch
+  0034-drm-amd-display-reject-atomic-commit-if-setting-both.patch
+  0035-drm-amd-display-add-CRTC-shaper-LUT-support.patch
+  0036-drm-amd-display-allow-newer-DC-hardware-to-use-degam.patch
+  0037-HACK-Prefix-new-color-mgmt-properties-with-VALVE1_.patch
+  0038-drm-amd-display-Reset-CRTC-color-mgmt-state-if-commi.patch
+  0039-HACK-add-KConfig-to-enable-driver-specific-color-mgm.patch
+  0040-Revert-drm-amd-display-mark-plane-as-needing-reset-i.patch
+  0041-drm-amd-display-mark-plane-as-needing-reset-if-color.patch
+  0042-Fix-rebasing-issues-remove-SDR_BOOST-and-other-flags.patch
+)
+
+validpgpkeys=(
+  ABAF11C65A2970B130ABE3C479BE3E4300411886  # Linus Torvalds
+  647F28654894E3BD457199BE38DBBDC86092693E  # Greg Kroah-Hartman
+  A2FF3A36AAA56654109064AB19802F8B0D70FC30  # Jan Alexander Steffens (heftig)
+  C7E7849466FE2358343588377258734B41C31549  # David Runge <dvzrv@archlinux.org>
+)
+b2sums=('8f2f75272d5d2a23c6694dffa2a20260310b5b958dbaf27c5bf74ce679cd929493116ff01e94444c3f891147869d09e9dee111cb52a04a8957ae5c8d94b4ee71'
+        'f8d423664a704439e4b34925c8c0a497de22c442cfcaed8da2ad5095c70433703f56acbd3a56b9169454dbaca215c443e662d69197babb3e01f2d224452f08df'
+        '239d01bd6fefb4f1b569ffa991c5a78351b85925aca73384c5e93386d104f89a754fde5f1df66aebc0ede286d04a7abb8be3f44a4fa114930f41bf75e9ba3632'
+        '73f038b77bff995aa6b543e5baabbcf8288352d375e7d34442442d97590c5d9cb7da006b7a4372a96914450b83f54c76acad472af26866038715f2e166f1935c'
+        '0aabd614b3318880fe940d4f3eb93f8b7f0e91892864f95d5b12eabfce1650ef036bf4e2ccee8b391c8a3cef4ff1ff7661b118a4f72d82214dbf713743809f78'
+        '5a578620cc03574218a22c1eebbba91047815f0c7b0b3f2f3d1eb5534aa17254f0ea5f061cadfe7bbe3b32f0a20b2008e28a494cfd7be84600c4b6a89afd6940'
+        '4f8305d7b15763206e868d313b31372cc7e0df1b634d73f958d3c357c6859fd26e9490d0179f316b282b4058baae5365f5735eae157cceaa1a3acd7ee5e8d1c6'
+        '1c9cc5f309299f909478bae80758640ae09337a714da7d9d023a795b4dfc7569e760593c53c4948ebaac835c0cde5fde58776fb69b8d68a4c2f61ce96bb4c996'
+        '6c53217d09782a585a2aa4fc75230c750893796fd2c1fa61443a87b8456a7385f74908e310910702c78012ab3c75a43dad75d3f22a2f0cc94529f305db3a11aa'
+        '7ad4ad9193a574c9ca5a0bb44639b8e85b9f94eb3913a2abd54938544a8bf5907af07cbb5b49e64762af7b646e4f234e3ed4b63b785469f2734fc703805b8bc0'
+        '7c2aa45902eb23c316f756b2f9499c7f682c357acb08259815b561b4a470fb392fde88ca3664e20def3d33f654270a6ffc8ca9417c2a5c6d23864ffe6f262358'
+        '37cd8b9075d0c234a46cca43f3c25fc6263addeb64a91189e681d02344517622f77a5bc73b9836efcf1a3c48601c04b4e3560751188f7f5dde60f9ff102f73da'
+        '047e318af461ea44b304a666c459b92ed24ac62d4b09f6816d2af1aa1a2a7e2480b91a6cfc6e791a7d9467e53e158021670478bd9450d33831c4fcaff05e05ac'
+        'a56a151d07f2fb3c6e56eef4752a5c5c2ef8ecdab131ac371376034a6fbdc795ce6c56ce57b94eea684e061cdfde912702c4af28c8270c94c80088c511f463f2'
+        '294e8a3968c60b08451ab84b5fbcddaaed0434ffea54ff9f0eda77918ee97fa5892bdd37b7c9efaee647aab648527ba9ae3b1f2cdadef1a47e9e4dcdc4b54b3c'
+        '50f7c3948895581f331f7b5ab9ad51dd17c55c2bdd571d0c7c1d891a996aa31317c130a5cd6d1c57e7c4aa1f037b982951766ce43bfff0bc4417fbe6baee9a1b'
+        '66b2aee6e4b64998c9a9263801ecab4ae3b007c97f3851d6d5a9713db26adf26967c7b9f32173463754db1bf2c98b029e96a6066c3f696fa8d09336a808ac431'
+        '33203d272dc0e8ff4ee91783bc2e2a5767fac0d6bfb3a6b680a0d1d934eedd7475f1ceb2ddf7fc4993243e1e939cc49e19e8104bd3681b4f575b1d06cf2fdb4f'
+        'ebdad34e46f153652cc70eadbdd5754ce5f093c5a2b1724c329a92ed40d2ba46d60097b68a8e3f73fca4a35ddc29697e92396b0a42b2f0bc9f8a5d3f4e87f731'
+        '46021b1bccfc7ae966313de2283f5bb1765babe9956fcefa922a620aa4d2f96c2f8a1174d9dcefaf39668eb3f266bf3cdb9d70fa82b28c2ffb524ec15d9540c1'
+        '030c3e0ad8fcaca620a9a120e6414e7809c56f4d623d04ef3772b5f35caf0badc03cb4c52b30ea15a7549cc3b125699a76831b3de7b126f395647d40d6efb5de'
+        'c0b39afdd9ad1c692cad981f5c1b8315e6e30ba698aba2caa6126620bf0d04668e352d64ed840958104cef2845cafa4ccb9e545be20f97cf60fb93d544a5a07b'
+        '48100398c5bcc85e6e94d722c0556a4574ce177792f7b06cc100a1406313ff11a44437f951f435faa53bfa8cc8463829efbb21ebc2a05e7d947d42bc938c4383'
+        '83240c9c848755e6fa89d22618302e469da3171bf59b1be31cc27ae5fc748e2245c8d67c1a8485b23f6577a8e9a84c275f9f5c059c05da40b0e82631c8073c87'
+        '797ca8c20c8bc73482f0b73c6c2a745e3a3c82df22216d3e0b15f749f88cef6a249f8c61d940b0004d4c62d1a11b474455f19817f744842cee6b16de3071cc78'
+        '08088490064084dcc98f3253db22dca678386fa3cccb414d336ff288de7648d962eaa3824702b7d9205ed2ecc6b0919bae578c8ef12cc12ba21376cf1de190a1'
+        '15b93af21ae025279c66f598291ca6c3a54e333989ba32b5d32ffe65588c9312c5646b57c300d12baecd68c668408c20f02058b08bfd93cc24960d1704a8161c'
+        'cb4ea5093863dd90c978d1149050ce8526039f2e41c7c915c25ee66625b65947ab5b9c29c656d9539a1ad21ea137830370aa1c9566e66243276244bfc33a86e1'
+        '28c69af2cd91548ae8979c8075ac9574b5e7e1bc40d9e0148512b3f1eedd1ee604ca60294778b0b9788c8444fd6361e0ddbee29b5fafcc37933a4593c317e105'
+        '2f8447d983cb3ab96986f6cf30da9285b336a830df91a34f59dc920fdadc2fb3f7f9652f2b8284169371e867ed1c6bd226d395f39e4095fb3872d921dcf1b88d'
+        '6a19426962b302ed90e8d14a9bf3ccf92ba8ebabb5118dee630352ac42dba5366ed71d86a94a731544c6ee27bcf8f9177a4c97fd19a5fc661c41f1d541e4e0e4'
+        '2610bd47d378d68b5d6fb1aedac3db0405d6155ed338456c3e993febf6617b8d2b2d8e0c44d422f8cdd5e8a942a4b536a6afb036c33427b63a548b367dc33fc2'
+        'cbe0aacf5278a0104ecfa5d16d1d0d0cfb892754d156142179408e0fe975d0d18df15cb0b352006fe6f8eaea3038066ad00b11800c0ad250b35bc0684ef21d14'
+        'bfdc2856a0dea5e0b01fc7bf2f337635258c8e07301e20197bfc7a0a622fbeafc8ca3186d89d697353e4d1f2ed2c12586c73de58d66f704b38c2c2fe3800f862'
+        '32386b3dc6d239b7107c1f1c5b7b6ed3f176d34a53195536fa29ff07cb7d50c89a49fe157c2e4ad7b8d4784ec5444c5ac4521321106967a75f0a4a313cc74a5c'
+        '981d74138421f1119fab5ca9c9f77ee76110612c5a1c6fb3ad43e9c7f3a6e5c02f658baeda12a4d9971bd7a145f16be59404e62646d77d195b367d75e65ec04c'
+        '1a66c4ca98c88b413a72c3778623307b63a07d3b9407a13d6389af9404e3e5636c39d97484af036e72f73144ac88e7c9c53797a1565c38ad3839deba15379dd4'
+        '0bb3e2d42b5f05155652b9eab7e3a3d9676bb7a645e2ab4d04447cd09df4122a25d822cb621896b2bdd6bba56014be6b19f750f31880ca743b9e6800fc938532'
+        '588b27d116aacb94a0fef1c603561b34e9bff9d21623b91c8a21a176293238e1497aec399a40999e7aef0125bcc304fd994be456100a33da7e0a2c8d5408fa84'
+        '1687291b5a01948a22a9b1bd7aef9372acf3a9bc51bfa7855bd0611c451ed1c327b4539801ab6e9661caaaeba4f03c2dab90dd8caccec69d2bca459197d3392b'
+        '18ebde641b16d363427ae2e7f4f2d5c95f5902f9b7d6d372b154350c68be2d980e35f035adb67379257186a9b5c96f5a9fa77429d2d7081629c293bd4225cee6'
+        '28d8e2cb8f6520f61bfe46d15df6e0d32cde8267425ba76fd9c8c13ca0f56b46d77bea5c8afe1156a95e7d4b0f83657079611d3e7cbad12027a9a7ad3358efe1'
+        '36a7b63734bc30714473c9c98e780978262d4d3ac6e806b0d49bfbee84adde0aefc46d2550e44d0f789cb185a82f309af772345a3a92cd09f639f8a89d921e63'
+        'cdbccc291e6ea6e0b389e90843e85fe86f01ed2bd329ec392cf4db0368bc1b0b513cfdaf1512bb349df9de8df21fa4c31fc66b20a1605d5742a4b4aa1c3211ec'
+        'acce8969e27cb5c1ba1fce5c74594d7f33a0a92b60f200d0a8be94c2968e5662734b6244e824b3859228eb4dd54183cc11840db7a700a62a1a9d7472f03efe88'
+        '51a05ee9be9b98af22350eab49f95990a344761871fedde2e12f80c9205304d03e6c143a7c81308326f1c9f7481a07bb2916fa379af60f74e19df416da524553'
+        '7f82d7a925961bb24ff889a94a4a189f23e0241f5b68a7c3d8a9b7c36e20f8675c898699440725880044bec2114e0bc05b16dc26de7c4a203395d6b2af4d8130'
+        '778e7f334bb0ad01bb02ff7a6af4434d1e87a152a7e38dc81ac0152596f45220ce82f244cf3aaae460d279c94090a041f14697708b4b21226cd73c980f0f66ec'
+        '687dfd981b47f1ff3c6942df84ceafe22f2841f39bf6610bfe2f18239634cce63ddde0926de642611122b4c8d77cd8d9697b8f9ae1d2142458108ca79d049ede'
+        '12bfde765c4234fca3f64ebaa97822c628baa558b80982429d0e2dc390d50aa0baab9a334bfa3b762cd05c538eb082a1af57665fc3b64cad5e8ef69171cfd0e9'
+        '93df8d3f60c6f802398ebdfb7999f29d622c5dace4cf8a3d5b07a49719069050451eb23f0aa39f76a429edccd50e08d2e070555e67804c9f81c742b1a9cda18c')
+
+export KBUILD_BUILD_HOST=archlinux
+export KBUILD_BUILD_USER=$pkgbase
+export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
+
+_make() {
+  test -s version
+  make KERNELRELEASE="$(<version)" "$@"
+}
+
+prepare() {
+  mv "linux-${_srctag}" $_srcname
+  cd $_srcname
+
+  echo "Setting version..."
+  echo "${pkgbase#linux}" > localversion.10-pkgname
+  echo "-$pkgrel" > localversion.20-pkgrel
+  make defconfig
+  make -s kernelrelease > version
+  make mrproper
+
+  local src
+  for src in "${source[@]}"; do
+    src="${src%%::*}"
+    src="${src##*/}"
+    [[ $src = *.patch ]] || continue
+    echo "Applying patch $src..."
+    patch -Np1 < "../$src"
+  done
+
+  echo "Setting config..."
+  cp ../config .config
+  _make olddefconfig
+  diff -u ../config .config || :
+
+  echo "Prepared $pkgbase version $(<version)"
+}
+
+build() {
+  cd $_srcname
+  _make all
+}
+
+_package() {
+  pkgdesc="The $pkgdesc kernel and modules"
+  depends=(
+    coreutils
+    initramfs
+    kmod
+  )
+  optdepends=(
+    'wireless-regdb: to set the correct wireless channels of your country'
+    'linux-firmware: firmware images needed for some devices'
+  )
+  provides=(
+    KSMBD-MODULE
+    VIRTUALBOX-GUEST-MODULES
+    WIREGUARD-MODULE
+  )
+  replaces=(
+    virtualbox-guest-modules-arch
+    wireguard-arch
+  )
+
+  cd $_srcname
+  local modulesdir="$pkgdir/usr/lib/modules/$(<version)"
+
+  echo "Installing boot image..."
+  # systemd expects to find the kernel here to allow hibernation
+  # https://github.com/systemd/systemd/commit/edda44605f06a41fb86b7ab8128dcf99161d2344
+  install -Dm644 "$(_make -s image_name)" "$modulesdir/vmlinuz"
+
+  # Used by mkinitcpio to name the kernel
+  echo "$pkgbase" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
+
+  echo "Installing modules..."
+  _make INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 \
+    DEPMOD=/doesnt/exist modules_install  # Suppress depmod
+
+  # remove build and source links
+  rm "$modulesdir"/{source,build}
+}
+
+_package-headers() {
+  pkgdesc="Headers and scripts for building modules for the $pkgdesc kernel"
+  depends=(pahole)
+
+  cd $_srcname
+  local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
+
+  echo "Installing build files..."
+  install -Dt "$builddir" -m644 .config Makefile Module.symvers System.map \
+    localversion.* version vmlinux
+  install -Dt "$builddir/kernel" -m644 kernel/Makefile
+  install -Dt "$builddir/arch/x86" -m644 arch/x86/Makefile
+  cp -t "$builddir" -a scripts
+
+  # required when STACK_VALIDATION is enabled
+  install -Dt "$builddir/tools/objtool" tools/objtool/objtool
+
+  # required when DEBUG_INFO_BTF_MODULES is enabled
+  install -Dt "$builddir/tools/bpf/resolve_btfids" tools/bpf/resolve_btfids/resolve_btfids
+
+  echo "Installing headers..."
+  cp -t "$builddir" -a include
+  cp -t "$builddir/arch/x86" -a arch/x86/include
+  install -Dt "$builddir/arch/x86/kernel" -m644 arch/x86/kernel/asm-offsets.s
+
+  install -Dt "$builddir/drivers/md" -m644 drivers/md/*.h
+  install -Dt "$builddir/net/mac80211" -m644 net/mac80211/*.h
+
+  # https://bugs.archlinux.org/task/13146
+  install -Dt "$builddir/drivers/media/i2c" -m644 drivers/media/i2c/msp3400-driver.h
+
+  # https://bugs.archlinux.org/task/20402
+  install -Dt "$builddir/drivers/media/usb/dvb-usb" -m644 drivers/media/usb/dvb-usb/*.h
+  install -Dt "$builddir/drivers/media/dvb-frontends" -m644 drivers/media/dvb-frontends/*.h
+  install -Dt "$builddir/drivers/media/tuners" -m644 drivers/media/tuners/*.h
+
+  # https://bugs.archlinux.org/task/71392
+  install -Dt "$builddir/drivers/iio/common/hid-sensors" -m644 drivers/iio/common/hid-sensors/*.h
+
+  echo "Installing KConfig files..."
+  find . -name 'Kconfig*' -exec install -Dm644 {} "$builddir/{}" \;
+
+  echo "Removing unneeded architectures..."
+  local arch
+  for arch in "$builddir"/arch/*/; do
+    [[ $arch = */x86/ ]] && continue
+    echo "Removing $(basename "$arch")"
+    rm -r "$arch"
+  done
+
+  echo "Removing documentation..."
+  rm -r "$builddir/Documentation"
+
+  echo "Removing broken symlinks..."
+  find -L "$builddir" -type l -printf 'Removing %P\n' -delete
+
+  echo "Removing loose objects..."
+  find "$builddir" -type f -name '*.o' -printf 'Removing %P\n' -delete
+
+  echo "Stripping build tools..."
+  local file
+  while read -rd '' file; do
+    case "$(file -Sib "$file")" in
+      application/x-sharedlib\;*)      # Libraries (.so)
+        strip -v $STRIP_SHARED "$file" ;;
+      application/x-archive\;*)        # Libraries (.a)
+        strip -v $STRIP_STATIC "$file" ;;
+      application/x-executable\;*)     # Binaries
+        strip -v $STRIP_BINARIES "$file" ;;
+      application/x-pie-executable\;*) # Relocatable binaries
+        strip -v $STRIP_SHARED "$file" ;;
+    esac
+  done < <(find "$builddir" -type f -perm -u+x ! -name vmlinux -print0)
+
+  echo "Stripping vmlinux..."
+  strip -v $STRIP_STATIC "$builddir/vmlinux"
+
+  echo "Adding symlink..."
+  mkdir -p "$pkgdir/usr/src"
+  ln -sr "$builddir" "$pkgdir/usr/src/$pkgbase"
+}
+
+_package-docs() {
+  pkgdesc="Documentation for the $pkgdesc kernel"
+
+  cd $_srcname
+  local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
+
+  echo "Installing documentation..."
+  local src dst
+  while read -rd '' src; do
+    dst="${src#Documentation/}"
+    dst="$builddir/Documentation/${dst#output/}"
+    install -Dm644 "$src" "$dst"
+  done < <(find Documentation -name '.*' -prune -o ! -type d -print0)
+
+  echo "Adding symlink..."
+  mkdir -p "$pkgdir/usr/share/doc"
+  ln -sr "$builddir/Documentation" "$pkgdir/usr/share/doc/$pkgbase"
+}
+
+pkgname=(
+  "$pkgbase"
+  "$pkgbase-headers"
+  #"$pkgbase-docs"
+)
+for _p in "${pkgname[@]}"; do
+  eval "package_$_p() {
+    $(declare -f "_package${_p#$pkgbase}")
+    _package${_p#$pkgbase}
+  }"
+done
+
+# vim:set ts=8 sts=2 sw=2 et:

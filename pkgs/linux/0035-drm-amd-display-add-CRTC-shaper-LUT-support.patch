@@ -1,0 +1,104 @@
+From e1169fa983862b90280a99fa49e743e29c88c4b9 Mon Sep 17 00:00:00 2001
+From: Melissa Wen <mwen@igalia.com>
+Date: Tue, 23 May 2023 21:15:06 -0100
+Subject: [PATCH 35/42] drm/amd/display: add CRTC shaper LUT support
+
+Map DC shaper LUT to DM CRTC color management. Shaper LUT can be used to
+delinearize and/or normalize the color space for computational
+efficiency and achiving specific visual styles. Blending usually occurs
+in linear space and if a CRTC degamma 1D LUT is set to linearize the
+color space, a custom shaper 1D LUT can be used just before applying 3D
+LUT.
+
+Signed-off-by: Melissa Wen <mwen@igalia.com>
+---
+ .../gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h |  7 ++++++
+ .../amd/display/amdgpu_dm/amdgpu_dm_color.c   | 24 +++++++++++++++----
+ 2 files changed, 26 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
+index 8d1dff07586a..9378d34a1f2f 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
+@@ -804,6 +804,13 @@ struct dm_crtc_state {
+ 	 * has a larger set of post-blending color calibration. Here, DC MPC
+ 	 * color caps are wired up to DM CRTC state:
+ 	 */
++	/**
++	 * @shaper_lut:
++	 *
++	 * Post-blending 1D Lookup table used to de-linearize pixel data for 3D
++	 * LUT. The blob (if not NULL) is an array of &struct drm_color_lut.
++	 */
++	struct drm_property_blob *shaper_lut;
+ 	/**
+ 	 * @lut3d:
+ 	 *
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+index d8b91c1eda8c..7cf57d8c1861 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+@@ -600,12 +600,22 @@ static uint32_t amdgpu_dm_get_lut3d_size(struct amdgpu_device *adev,
+ int amdgpu_dm_verify_lut3d_size(struct amdgpu_device *adev,
+ 				const struct drm_crtc_state *crtc_state)
+ {
+-	const struct drm_color_lut *lut3d = NULL;
+ 	struct dm_crtc_state *acrtc_state = to_dm_crtc_state(crtc_state);
++	const struct drm_color_lut *shaper = NULL, *lut3d = NULL;
+ 	uint32_t exp_size, size;
+ 
+-	exp_size = amdgpu_dm_get_lut3d_size(adev, MAX_COLOR_3DLUT_ENTRIES);
++	/* shaper LUT is only available if 3D LUT color caps*/
++	exp_size = amdgpu_dm_get_lut3d_size(adev, MAX_COLOR_LUT_ENTRIES);
++	shaper = __extract_blob_lut(acrtc_state->shaper_lut, &size);
++
++	if (shaper && size != exp_size) {
++		drm_dbg(&adev->ddev,
++			"Invalid Shaper LUT size. Should be %u but got %u.\n",
++			exp_size, size);
++		return -EINVAL;
++	}
+ 
++	exp_size = amdgpu_dm_get_lut3d_size(adev, MAX_COLOR_3DLUT_ENTRIES);
+ 	lut3d = __extract_blob_lut(acrtc_state->lut3d, &size);
+ 
+ 	if (lut3d && size != exp_size) {
+@@ -688,15 +698,16 @@ int amdgpu_dm_update_crtc_color_mgmt(struct dm_crtc_state *crtc,
+ 	bool has_regamma, has_degamma;
+ 	enum dc_transfer_func_predefined tf = TRANSFER_FUNCTION_LINEAR;
+ 	bool is_legacy;
++	const struct drm_color_lut *shaper_lut, *lut3d;
++	uint32_t shaper_size, lut3d_size;
+ 	int r;
+-	const struct drm_color_lut *lut3d;
+-	uint32_t lut3d_size;
+ 
+ 	r =  amdgpu_dm_verify_lut3d_size(adev, &crtc->base);
+ 	if (r)
+ 		return r;
+ 
+ 	lut3d = __extract_blob_lut(crtc->lut3d, &lut3d_size);
++	shaper_lut = __extract_blob_lut(crtc->shaper_lut, &shaper_size);
+ 
+ 	r = amdgpu_dm_verify_lut_sizes(&crtc->base);
+ 	if (r)
+@@ -754,12 +765,15 @@ int amdgpu_dm_update_crtc_color_mgmt(struct dm_crtc_state *crtc,
+ 		 * there is no user-blob.
+ 		 */
+ 		lut3d_size = lut3d != NULL ? lut3d_size : 0;
++		shaper_size = shaper_lut != NULL ? shaper_size : 0;
+ 		r = amdgpu_dm_atomic_shaper_lut3d(adev->dm.dc, ctx, stream,
+ 						  shaper_lut, shaper_size,
+ 						  has_rom, tf,
+ 						  lut3d, lut3d_size);
+-		if (r)
++		if (r) {
++			drm_dbg(&adev->ddev, "Failed on shaper/3D LUTs setup\n");
+ 			return r;
++		}
+ 
+ 		/* Note: OGAM is disabled if 3D LUT is successfully programmed.
+ 		 * See params and set_output_gamma in
+-- 
+2.41.0
+

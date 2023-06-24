@@ -1,0 +1,28 @@
+From c9a5a2217477ec0f07b7c1feaa5443bca5955aea Mon Sep 17 00:00:00 2001
+From: Melissa Wen <mwen@igalia.com>
+Date: Sun, 11 Jun 2023 13:34:02 -0100
+Subject: [PATCH 40/42] Revert "drm/amd/display: mark plane as needing reset if
+ plane color mgmt changes"
+
+This reverts commit f3a18707a984d82ab842bd8b8666a442c1943d59.
+---
+ drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+index 6aa59f1414b9..f1e2f8b3d744 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+@@ -9435,9 +9435,6 @@ static bool should_reset_plane(struct drm_atomic_state *state,
+ 	if (drm_atomic_crtc_needs_modeset(new_crtc_state))
+ 		return true;
+ 
+-	if (new_plane_state->color_mgmt_changed)
+-		return true;
+-
+ 	/*
+ 	 * If there are any new primary or overlay planes being added or
+ 	 * removed then the z-order can potentially change. To ensure
+-- 
+2.41.0
+
