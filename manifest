@@ -150,7 +150,6 @@ export AUR_PACKAGES="\
 	chimera \
 	chimeraos-device-quirks-git \
 	frzr \
-	gamescope-git \
 	gamescope-session-git \
 	handygccs-git \
 	hhfc-git \
