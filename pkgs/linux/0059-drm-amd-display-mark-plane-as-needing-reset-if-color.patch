@@ -1,0 +1,50 @@
+From 0dcdec5daf4dfa2dcdcfeeabf50e5f153473c5b7 Mon Sep 17 00:00:00 2001
+From: Joshua Ashton <joshua@froggi.es>
+Date: Fri, 14 Apr 2023 22:19:49 -0100
+Subject: [PATCH 59/59] drm/amd/display: mark plane as needing reset if color
+ props change
+
+Co-developed-by: Melissa Wen <mwen@igalia.com>
+Signed-off-by: Melissa Wen <mwen@igalia.com>
+Signed-off-by: Joshua Ashton <joshua@froggi.es>
+---
+ .../gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c    | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+index 9b61a1a282bf2..2c17addefde13 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+@@ -9507,6 +9507,11 @@ static bool should_reset_plane(struct drm_atomic_state *state,
+ 	 */
+ 	for_each_oldnew_plane_in_state(state, other, old_other_state, new_other_state, i) {
+ 		struct amdgpu_framebuffer *old_afb, *new_afb;
++		struct dm_plane_state *dm_new_other_state, *dm_old_other_state;
++
++		dm_new_other_state = to_dm_plane_state(new_other_state);
++		dm_old_other_state = to_dm_plane_state(old_other_state);
++
+ 		if (other->type == DRM_PLANE_TYPE_CURSOR)
+ 			continue;
+ 
+@@ -9542,6 +9547,17 @@ static bool should_reset_plane(struct drm_atomic_state *state,
+ 		    old_other_state->color_encoding != new_other_state->color_encoding)
+ 			return true;
+ 
++		/* HDR/Transfer Function changes. */
++		if (dm_old_other_state->degamma_tf != dm_new_other_state->degamma_tf ||
++		    dm_old_other_state->degamma_lut != dm_new_other_state->degamma_lut ||
++		    dm_old_other_state->hdr_mult != dm_new_other_state->hdr_mult ||
++		    dm_old_other_state->shaper_lut != dm_new_other_state->shaper_lut ||
++		    dm_old_other_state->shaper_tf != dm_new_other_state->shaper_tf ||
++		    dm_old_other_state->lut3d != dm_new_other_state->lut3d ||
++		    dm_old_other_state->blend_lut != dm_new_other_state->blend_lut ||
++		    dm_old_other_state->blend_tf != dm_new_other_state->blend_tf)
++			return true;
++
+ 		/* Framebuffer checks fall at the end. */
+ 		if (!old_other_state->fb || !new_other_state->fb)
+ 			continue;
+-- 
+2.40.1
+

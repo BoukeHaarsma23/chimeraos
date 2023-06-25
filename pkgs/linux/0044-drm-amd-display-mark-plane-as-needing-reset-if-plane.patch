@@ -1,0 +1,35 @@
+From 86b4efc68bf101c61f59d4a11cca5b56f8e60cde Mon Sep 17 00:00:00 2001
+From: Melissa Wen <mwen@igalia.com>
+Date: Fri, 14 Apr 2023 22:19:49 -0100
+Subject: [PATCH 44/59] drm/amd/display: mark plane as needing reset if plane
+ color mgmt changes
+
+We took a similar path for CRTC color mgmt changes, since we remap CRTC
+degamma to plane/DPP block. Here we can use the status of
+`plane->color_mgmt_changed` to detect when a plane color property
+changed and recreate the plane accordingly.
+
+Co-developed-by: Joshua Ashton <joshua@froggi.es>
+Signed-off-by: Joshua Ashton <joshua@froggi.es>
+Signed-off-by: Melissa Wen <mwen@igalia.com>
+---
+ drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+index df44adae79d24..32d8196e744b1 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+@@ -9491,6 +9491,9 @@ static bool should_reset_plane(struct drm_atomic_state *state,
+ 	if (drm_atomic_crtc_needs_modeset(new_crtc_state))
+ 		return true;
+ 
++	if (new_plane_state->color_mgmt_changed)
++		return true;
++
+ 	/*
+ 	 * If there are any new primary or overlay planes being added or
+ 	 * removed then the z-order can potentially change. To ensure
+-- 
+2.40.1
+
