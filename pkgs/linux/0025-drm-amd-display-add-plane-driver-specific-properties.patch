@@ -1,0 +1,269 @@
+From 928bb8e9e9a46dc2005e0e4946bca9b1915b03f3 Mon Sep 17 00:00:00 2001
+From: Melissa Wen <mwen@igalia.com>
+Date: Tue, 16 May 2023 14:55:28 -0100
+Subject: [PATCH 25/59] drm/amd/display: add plane driver-specific properties
+ for degamma LUT
+
+Create and attach driver-private properties for plane color management.
+First add plane degamma LUT properties that means user-blob and its
+size. We will add more plane color properties in the next commits. In
+addition, we keep these driver-private plane properties limited by
+defining AMD_PRIVATE_COLOR.
+
+Co-developed-by: Joshua Ashton <joshua@froggi.es>
+Signed-off-by: Joshua Ashton <joshua@froggi.es>
+Signed-off-by: Melissa Wen <mwen@igalia.com>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_display.c   |  14 ++
+ drivers/gpu/drm/amd/amdgpu/amdgpu_mode.h      |   8 ++
+ .../gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h |   9 ++
+ .../amd/display/amdgpu_dm/amdgpu_dm_plane.c   | 122 +++++++-----------
+ 4 files changed, 77 insertions(+), 76 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c
+index 73a1ce45ad4ce..eb13ac46da7b2 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c
+@@ -1276,6 +1276,20 @@ amdgpu_display_create_color_properties(struct amdgpu_device *adev)
+ 		return -ENOMEM;
+ 	adev->mode_info.regamma_tf_property = prop;
+ 
++	prop = drm_property_create(adev_to_drm(adev),
++				   DRM_MODE_PROP_BLOB,
++				   "AMD_PLANE_DEGAMMA_LUT", 0);
++	if (!prop)
++		return -ENOMEM;
++	adev->mode_info.plane_degamma_lut_property = prop;
++
++	prop = drm_property_create_range(adev_to_drm(adev),
++					 DRM_MODE_PROP_IMMUTABLE,
++					 "AMD_PLANE_DEGAMMA_LUT_SIZE", 0, UINT_MAX);
++	if (!prop)
++		return -ENOMEM;
++	adev->mode_info.plane_degamma_lut_size_property = prop;
++
+ 	return 0;
+ }
+ #endif
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_mode.h b/drivers/gpu/drm/amd/amdgpu/amdgpu_mode.h
+index 156067c53c21a..f420799e38593 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_mode.h
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_mode.h
+@@ -351,6 +351,14 @@ struct amdgpu_mode_info {
+ 	 * drm_transfer_function`.
+ 	 */
+ 	struct drm_property *regamma_tf_property;
++	/* @plane_degamma_lut_property: Plane property to set a degamma LUT to
++	 * convert color space before blending.
++	 */
++	struct drm_property *plane_degamma_lut_property;
++	/* @plane_degamma_lut_size_property: Plane property to define the max
++	 * size of degamma LUT as supported by the driver (read-only).
++	 */
++	struct drm_property *plane_degamma_lut_size_property;
+ };
+ 
+ #define AMDGPU_MAX_BL_LEVEL 0xFF
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
+index 902a962e5003e..31178a670fea3 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h
+@@ -717,6 +717,15 @@ enum drm_transfer_function {
+ struct dm_plane_state {
+ 	struct drm_plane_state base;
+ 	struct dc_plane_state *dc_state;
++
++	/* Plane color mgmt */
++	/**
++	 * @degamma_lut:
++	 *
++	 * LUT for converting plane pixel data before going into plane merger.
++	 * The blob (if not NULL) is an array of &struct drm_color_lut.
++	 */
++	struct drm_property_blob *degamma_lut;
+ };
+ 
+ struct dm_crtc_state {
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
+index 28fb1f02591ab..d4dbbd9475467 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
+@@ -1360,14 +1360,8 @@ dm_drm_plane_duplicate_state(struct drm_plane *plane)
+ 		dc_plane_state_retain(dm_plane_state->dc_state);
+ 	}
+ 
+-#ifdef CONFIG_DRM_AMD_DC_HDR
+ 	if (dm_plane_state->degamma_lut)
+ 		drm_property_blob_get(dm_plane_state->degamma_lut);
+-	if (dm_plane_state->ctm)
+-		drm_property_blob_get(dm_plane_state->ctm);
+-
+-	dm_plane_state->sdr_boost = old_dm_plane_state->sdr_boost;
+-#endif
+ 
+ 	return &dm_plane_state->base;
+ }
+@@ -1436,95 +1430,71 @@ static void dm_drm_plane_destroy_state(struct drm_plane *plane,
+ {
+ 	struct dm_plane_state *dm_plane_state = to_dm_plane_state(state);
+ 
+-#ifdef CONFIG_DRM_AMD_DC_HDR
+-	drm_property_blob_put(dm_plane_state->degamma_lut);
+-	drm_property_blob_put(dm_plane_state->ctm);
+-#endif
++	if (dm_plane_state->degamma_lut)
++		drm_property_blob_put(dm_plane_state->degamma_lut);
++
+ 	if (dm_plane_state->dc_state)
+ 		dc_plane_state_release(dm_plane_state->dc_state);
+ 
+ 	drm_atomic_helper_plane_destroy_state(plane, state);
+ }
+ 
+-#ifdef CONFIG_DRM_AMD_DC_HDR
+-/* copied from drm_atomic_uapi.c */
+-static int atomic_replace_property_blob_from_id(struct drm_device *dev,
+-					 struct drm_property_blob **blob,
+-					 uint64_t blob_id,
+-					 ssize_t expected_size,
+-					 ssize_t expected_elem_size,
+-					 bool *replaced)
++#ifdef AMD_PRIVATE_COLOR
++static void
++dm_atomic_plane_attach_color_mgmt_properties(struct amdgpu_display_manager *dm,
++					     struct drm_plane *plane)
+ {
+-	struct drm_property_blob *new_blob = NULL;
+-
+-	if (blob_id != 0) {
+-		new_blob = drm_property_lookup_blob(dev, blob_id);
+-		if (new_blob == NULL)
+-			return -EINVAL;
+-
+-		if (expected_size > 0 &&
+-		    new_blob->length != expected_size) {
+-			drm_property_blob_put(new_blob);
+-			return -EINVAL;
+-		}
+-		if (expected_elem_size > 0 &&
+-		    new_blob->length % expected_elem_size != 0) {
+-			drm_property_blob_put(new_blob);
+-			return -EINVAL;
+-		}
++	if (dm->dc->caps.color.dpp.dgam_ram || dm->dc->caps.color.dpp.gamma_corr ) {
++		drm_object_attach_property(&plane->base,
++					   dm->adev->mode_info.plane_degamma_lut_property, 0);
++		drm_object_attach_property(&plane->base,
++					   dm->adev->mode_info.plane_degamma_lut_size_property,
++					   MAX_COLOR_LUT_ENTRIES);
+ 	}
+-
+-	*replaced |= drm_property_replace_blob(blob, new_blob);
+-	drm_property_blob_put(new_blob);
+-
+-	return 0;
+ }
+ 
+-int dm_drm_plane_set_property(struct drm_plane *plane,
+-			      struct drm_plane_state *state,
+-			      struct drm_property *property,
+-			      uint64_t val)
++static int
++dm_atomic_plane_set_property(struct drm_plane *plane,
++			     struct drm_plane_state *state,
++			     struct drm_property *property,
++			     uint64_t val)
+ {
+-	struct amdgpu_device *adev = drm_to_adev(plane->dev);
+ 	struct dm_plane_state *dm_plane_state = to_dm_plane_state(state);
+-	int ret = 0;
+-	bool replaced;
+-
+-	if (property == adev->dm.degamma_lut_property) {
+-		ret = atomic_replace_property_blob_from_id(adev_to_drm(adev),
+-				&dm_plane_state->degamma_lut,
+-				val, -1, sizeof(struct drm_color_lut),
+-				&replaced);
+-	} else if (property == adev->dm.ctm_property) {
+-		ret = atomic_replace_property_blob_from_id(adev_to_drm(adev),
+-				&dm_plane_state->ctm,
+-				val,
+-				sizeof(struct drm_color_ctm), -1,
+-				&replaced);
+-	} else if (property == adev->dm.sdr_boost_property) {
+-		dm_plane_state->sdr_boost = val;
++	struct amdgpu_device *adev = drm_to_adev(plane->dev);
++	bool replaced = false;
++	int ret;
++
++	if (property == adev->mode_info.plane_degamma_lut_property) {
++		ret = drm_property_replace_blob_from_id(plane->dev,
++							&dm_plane_state->degamma_lut,
++							val,
++							-1, sizeof(struct drm_color_lut),
++							&replaced);
++		dm_plane_state->base.color_mgmt_changed |= replaced;
++		return ret;
+ 	} else {
++		drm_dbg_atomic(plane->dev,
++			       "[PLANE:%d:%s] unknown property [PROP:%d:%s]]\n",
++			       plane->base.id, plane->name,
++			       property->base.id, property->name);
+ 		return -EINVAL;
+ 	}
+ 
+-	return ret;
++	return 0;
+ }
+ 
+-int dm_drm_plane_get_property(struct drm_plane *plane,
+-			      const struct drm_plane_state *state,
+-			      struct drm_property *property,
+-			      uint64_t *val)
++static int
++dm_atomic_plane_get_property(struct drm_plane *plane,
++			     const struct drm_plane_state *state,
++			     struct drm_property *property,
++			     uint64_t *val)
+ {
+ 	struct dm_plane_state *dm_plane_state = to_dm_plane_state(state);
+ 	struct amdgpu_device *adev = drm_to_adev(plane->dev);
+ 
+-	if (property == adev->dm.degamma_lut_property) {
++	if (property == adev->mode_info.plane_degamma_lut_property) {
+ 		*val = (dm_plane_state->degamma_lut) ?
+ 			dm_plane_state->degamma_lut->base.id : 0;
+-	} else if (property == adev->dm.ctm_property) {
+-		*val = (dm_plane_state->ctm) ? dm_plane_state->ctm->base.id : 0;
+-	} else if (property == adev->dm.sdr_boost_property) {
+-		*val = dm_plane_state->sdr_boost;
+ 	} else {
+ 		return -EINVAL;
+ 	}
+@@ -1541,9 +1511,9 @@ static const struct drm_plane_funcs dm_plane_funcs = {
+ 	.atomic_duplicate_state = dm_drm_plane_duplicate_state,
+ 	.atomic_destroy_state = dm_drm_plane_destroy_state,
+ 	.format_mod_supported = dm_plane_format_mod_supported,
+-#ifdef CONFIG_DRM_AMD_DC_HDR
+-	.atomic_set_property = dm_drm_plane_set_property,
+-	.atomic_get_property = dm_drm_plane_get_property,
++#ifdef AMD_PRIVATE_COLOR
++	.atomic_set_property = dm_atomic_plane_set_property,
++	.atomic_get_property = dm_atomic_plane_get_property,
+ #endif
+ };
+ 
+@@ -1615,8 +1585,8 @@ int amdgpu_dm_plane_init(struct amdgpu_display_manager *dm,
+ 
+ 	drm_plane_helper_add(plane, &dm_plane_helper_funcs);
+ 
+-#ifdef CONFIG_DRM_AMD_DC_HDR
+-	attach_color_mgmt_properties(dm, plane);
++#ifdef AMD_PRIVATE_COLOR
++	dm_atomic_plane_attach_color_mgmt_properties(dm, plane);
+ #endif
+ 	/* Create (reset) the plane state */
+ 	if (plane->funcs->reset)
+-- 
+2.40.1
+

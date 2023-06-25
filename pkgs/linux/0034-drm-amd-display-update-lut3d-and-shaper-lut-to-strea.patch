@@ -1,0 +1,46 @@
+From b62d0b12eb580b2558433052c8fe807a08a71907 Mon Sep 17 00:00:00 2001
+From: Melissa Wen <mwen@igalia.com>
+Date: Wed, 31 Aug 2022 23:39:29 -0100
+Subject: [PATCH 34/59] drm/amd/display: update lut3d and shaper lut to stream
+
+It follows the same path of out_transfer_func for stream updates, since
+shaper LUT and 3D LUT is programmed in funcs.set_output_transfer_func()
+and this function is called in the atomic commit_tail when
+update_flags.bits.out_tf is set.
+
+Signed-off-by: Melissa Wen <mwen@igalia.com>
+---
+ drivers/gpu/drm/amd/display/dc/core/dc.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/core/dc.c b/drivers/gpu/drm/amd/display/dc/core/dc.c
+index eab53d6317c9f..abe82c439a6e5 100644
+--- a/drivers/gpu/drm/amd/display/dc/core/dc.c
++++ b/drivers/gpu/drm/amd/display/dc/core/dc.c
+@@ -2628,7 +2628,7 @@ static enum surface_update_type check_update_surfaces_for_stream(
+ 			stream_update->integer_scaling_update)
+ 			su_flags->bits.scaling = 1;
+ 
+-		if (stream_update->out_transfer_func)
++		if (stream_update->out_transfer_func || stream_update->lut3d_func)
+ 			su_flags->bits.out_tf = 1;
+ 
+ 		if (stream_update->abm_level)
+@@ -2977,6 +2977,14 @@ static void copy_stream_update_to_stream(struct dc *dc,
+ 		       sizeof(struct dc_transfer_func_distributed_points));
+ 	}
+ 
++	if (update->func_shaper &&
++	    stream->func_shaper != update->func_shaper)
++		stream->func_shaper = update->func_shaper;
++
++	if (update->lut3d_func &&
++	    stream->lut3d_func != update->lut3d_func)
++		stream->lut3d_func = update->lut3d_func;
++
+ 	if (update->hdr_static_metadata)
+ 		stream->hdr_static_metadata = *update->hdr_static_metadata;
+ 
+-- 
+2.40.1
+
