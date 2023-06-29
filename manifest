@@ -169,8 +169,6 @@ export AUR_PACKAGES="\
 	pikaur \
 	python-vdf \
 	retroarch-autoconfig-udev-git \
-	ryzenadj-git \
-	ryzenadj-controller-git \
 	rz608-fix-git \
 	steam-removable-media-git \
 	ttf-kanit \
@@ -191,7 +189,6 @@ export SERVICES="\
 	handycon \
 	haveged \
 	lightdm \
-	ryzenadj-controller \
 	sshd \
 	systemd-timesyncd \
 "
