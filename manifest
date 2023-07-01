@@ -155,6 +155,7 @@ export AUR_PACKAGES="\
 	boxtron \
 	chimera \
 	chimeraos-device-quirks-git \
+	drm_info-git \
 	frzr \
 	handygccs-git \
 	hhfc-git \
