@@ -161,7 +161,6 @@ export AUR_PACKAGES="\
 	handygccs-git \
 	hhfc-git \
 	legendary \
-	libretro-dosbox-pure-git \
 	libretro-opera-git \
 	libretro-prosystem-git \
 	libretro-stella2014-git \
