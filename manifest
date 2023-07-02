@@ -60,15 +60,10 @@ export PACKAGES="\
 	lib32-libnm \
 	lib32-libxinerama \
 	lib32-libxcrypt-compat \
-	lib32-libva \
-	lib32-libva-mesa-driver \
-	lib32-mesa \
 	lib32-openal \
 	lib32-pipewire \
 	lib32-systemd \
 	lib32-vulkan-icd-loader \
-	lib32-vulkan-intel \
-	lib32-vulkan-radeon \
 	libcurl-gnutls \
 	libidn11 \
 	libretro-beetle-pce-fast \
@@ -89,7 +84,6 @@ export PACKAGES="\
 	libretro-ppsspp \
 	libretro-snes9x \
 	libva-intel-driver \
-	libva-mesa-driver \
 	libva-vdpau-driver \
 	libxcrypt-compat \
 	libxss \
@@ -97,9 +91,7 @@ export PACKAGES="\
 	linux-firmware \
 	logrotate \
 	lshw \
-	mesa \
 	mesa-demos \
-	mesa-vdpau \
 	nano \
 	nautilus \
 	networkmanager \
@@ -128,8 +120,6 @@ export PACKAGES="\
 	usbutils \
 	vim \
 	vulkan-icd-loader \
-	vulkan-intel \
-	vulkan-radeon \
 	wavpack \
 	wget \
 	which \
@@ -149,6 +139,17 @@ export PACKAGE_OVERRIDES="\
 	https://github.com/BoukeHaarsma23/chimera-packages/releases/download/chos-f4379b6/linux-chimeraos-6.4.chos1-1-x86_64.pkg.tar.zst
 	https://github.com/BoukeHaarsma23/chimera-packages/releases/download/chos-f4379b6/linux-chimeraos-headers-6.4.chos1-1-x86_64.pkg.tar.zst
 	https://github.com/BoukeHaarsma23/chimera-packages/releases/download/chos-f4379b6/mangohud-0.6.9.1.r68.g0ae2e42-1-x86_64.pkg.tar.zst
+	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.3-chos1/lib32-libva-mesa-driver-23.1.3.chos1-1-x86_64.pkg.tar.zst
+	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.3-chos1/lib32-mesa-23.1.3.chos1-1-x86_64.pkg.tar.zst
+	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.3-chos1/lib32-mesa-vdpau-23.1.3.chos1-1-x86_64.pkg.tar.zst
+	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.3-chos1/lib32-vulkan-intel-23.1.3.chos1-1-x86_64.pkg.tar.zst
+	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.3-chos1/lib32-vulkan-radeon-23.1.3.chos1-1-x86_64.pkg.tar.zst
+	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.3-chos1/libva-mesa-driver-23.1.3.chos1-1-x86_64.pkg.tar.zst
+	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.3-chos1/mesa-23.1.3.chos1-1-x86_64.pkg.tar.zst
+	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.3-chos1/mesa-vdpau-23.1.3.chos1-1-x86_64.pkg.tar.zst
+	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.3-chos1/vulkan-intel-23.1.3.chos1-1-x86_64.pkg.tar.zst
+	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.3-chos1/vulkan-mesa-layers-23.1.3.chos1-1-x86_64.pkg.tar.zst
+	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.3-chos1/vulkan-radeon-23.1.3.chos1-1-x86_64.pkg.tar.zst
 "
 
 export AUR_PACKAGES="\
