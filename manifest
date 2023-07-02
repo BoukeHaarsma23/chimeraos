@@ -177,7 +177,6 @@ export AUR_PACKAGES="\
 	wyvern \
 	xpad-noone-dkms \
 	xpadneo-dkms \
-	zenpower3-dkms \
 "
 
 export SERVICES="\
@@ -226,10 +225,6 @@ postinstallhook() {
 
 	# disable retroarch menu in joypad configs
 	find /usr/share/libretro/autoconfig -type f -name '*.cfg' | xargs -d '\n' sed -i '/input_menu_toggle_btn/d'
-
-	# Enable zenpower
-	echo "blacklist k10temp" > /usr/lib/modprobe.d/k10temp.conf
-	echo "zenpower" > /usr/lib/modules-load.d/zenpower.conf
 
 	# download and add racing wheel udev rules
 	pushd /usr/lib/udev/rules.d
