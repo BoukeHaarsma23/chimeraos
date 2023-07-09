@@ -82,8 +82,8 @@ echo "LANG=en_US.UTF-8" > /etc/locale.conf
 locale-gen
 
 
-# update package databases
-pacman --noconfirm -Syy
+# update package databases and downgrade packages to archivedate
+pacman --noconfirm -Syyuu
 
 # install kernel package
 if [ "$KERNEL_PACKAGE_ORIGIN" == "local" ] ; then
