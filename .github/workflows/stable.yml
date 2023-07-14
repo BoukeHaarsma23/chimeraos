@@ -27,6 +27,8 @@ jobs:
       pkgs: ${{ steps.set-pkgs.outputs.matrix }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: recursive 
       - id: set-aur-pkgs
         run: echo "matrix=$(ls -d aur-pkgs/*/ | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
         shell: bash
@@ -46,6 +48,8 @@ jobs:
         package: ${{ fromJson(needs.list-pkgbuilds.outputs.aur-pkgs) }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: recursive 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v4
