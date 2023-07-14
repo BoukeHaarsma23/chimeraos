@@ -8,11 +8,7 @@ on:
   push:
     branches:
       - 'stable-**'
-  workflow_run:
-    workflows:
-      - Create Stable Branch
-    types:
-      - completed
+  workflow_dispatch:
 
 jobs:
   build-docker-image:
