@@ -21,7 +21,6 @@ export PACKAGES="\
 	bluez-hid2hci \
 	bluez-plugins \
 	bluez-utils \
-	broadcom-wl-dkms \
 	cifs-utils \
 	diffutils \
 	dkms \
@@ -52,10 +51,7 @@ export PACKAGES="\
 	gst-plugin-pipewire \
 	haveged \
 	htop \
-	intel-gpu-tools \
 	intel-media-driver \
-	intel-ucode \
-	intel-undervolt \
 	lib32-curl \
 	lib32-fontconfig \
 	lib32-freetype2 \
@@ -65,9 +61,6 @@ export PACKAGES="\
 	lib32-libxinerama \
 	lib32-libxcrypt-compat \
 	lib32-libva \
-	lib32-libva-intel-driver \
-	lib32-libva-vdpau-driver \
-	lib32-nvidia-utils \
 	lib32-openal \
 	lib32-pipewire \
 	lib32-systemd \
@@ -87,6 +80,7 @@ export PACKAGES="\
 	libretro-mgba \
 	libretro-mupen64plus-next \
 	libretro-nestopia \
+	libretro-pcsx2 \
 	libretro-picodrive \
 	libretro-ppsspp \
 	libretro-snes9x \
@@ -98,17 +92,12 @@ export PACKAGES="\
 	liquidctl \
 	logrotate \
 	lshw \
-	mesa-demos \
-	modemmanager \
 	nano \
 	nautilus \
 	networkmanager \
 	nfs-utils \
 	noto-fonts-emoji \
 	nss-mdns \
-	nvidia-dkms \
-	nvidia-prime \
-	nvidia-utils \
 	openal \
 	openssh \
 	pipewire \
@@ -148,16 +137,11 @@ export PACKAGES="\
 export PACKAGE_OVERRIDES="\
 	https://github.com/ChimeraOS/linux-chimeraos/releases/download/v6.4.9-chos1-1/linux-chimeraos-6.4.9.chos1-1-x86_64.pkg.tar.zst \
 	https://github.com/ChimeraOS/linux-chimeraos/releases/download/v6.4.9-chos1-1/linux-chimeraos-headers-6.4.9.chos1-1-x86_64.pkg.tar.zst \
-	https://archive.archlinux.org/repos/2023/06/28/extra/os/x86_64/libretro-pcsx2-11900-2-x86_64.pkg.tar.zst \
 	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.5-chos1-1/lib32-libva-mesa-driver-23.1.5.chos1-1-x86_64.pkg.tar.zst\
 	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.5-chos1-1/lib32-mesa-23.1.5.chos1-1-x86_64.pkg.tar.zst \
-	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.5-chos1-1/lib32-mesa-vdpau-23.1.5.chos1-1-x86_64.pkg.tar.zst \
-	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.5-chos1-1/lib32-vulkan-intel-23.1.5.chos1-1-x86_64.pkg.tar.zst \
 	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.5-chos1-1/lib32-vulkan-radeon-23.1.5.chos1-1-x86_64.pkg.tar.zst \
 	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.5-chos1-1/libva-mesa-driver-23.1.5.chos1-1-x86_64.pkg.tar.zst \
 	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.5-chos1-1/mesa-23.1.5.chos1-1-x86_64.pkg.tar.zst \
-	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.5-chos1-1/mesa-vdpau-23.1.5.chos1-1-x86_64.pkg.tar.zst \
-	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.5-chos1-1/vulkan-intel-23.1.5.chos1-1-x86_64.pkg.tar.zst \
 	https://github.com/ChimeraOS/mesa-chimeraos/releases/download/23.1.5-chos1-1/vulkan-radeon-23.1.5.chos1-1-x86_64.pkg.tar.zst \
 "
 
@@ -165,18 +149,12 @@ export PACKAGE_OVERRIDES="\
 # Which is often the same as the package name but it can be different.
 # Check on the AUR webpage if you are unsure
 export AUR_PACKAGES="\
-	ayaled \
-	asus-cirrus-firmware-git \
-	bcm20702a1-firmware \
 	boxtron \
 	chimera \
 	chimeraos-device-quirks-git \
-	downgrade \
 	frzr \
 	gamescope-plus \
 	gamescope-session-git \
-	handygccs-git \
-	hhfc-git \
 	legendary \
 	lib32-gamescope-plus \
 	libretro-dosbox-pure-git \
@@ -186,23 +164,10 @@ export AUR_PACKAGES="\
 	libretro-virtualjaguar-git \
 	kanit-font \
 	nintendo-udev \
-	opengamepadui-bin \
-	opengamepadui-session-git \
-	pikaur \
 	python-vdf \
-	r8152-dkms \
 	retroarch-autoconfig-udev-git \
-	rtl8812au-dkms-git \
-	rtl8814au-dkms-git \
-	rtl88x2bu-dkms-git \
-	rtl8821au-dkms-git \
-	rtw89-dkms-git \
-	ryzenadj-git \
-	ryzenadj-controller-git \
-	rz608-fix-git \
 	steam-removable-media-git \
 	wyvern \
-	xpad-noone-dkms \
 	zenergy-dkms-git \
 "
 
@@ -214,10 +179,8 @@ export SERVICES="\
 	chimera-proxy.service \
 	chimera-proxy.socket \
 	fstrim.timer \
-	handycon \
 	haveged \
 	lightdm \
-	ryzenadj-controller \
 	sshd \
 	systemd-timesyncd \
 "
@@ -290,10 +253,4 @@ postinstallhook() {
 
 	# force -steamdeck option in desktop mode to prevent constant steam updates
 	sed -i 's,Exec=/usr/bin/steam-runtime,Exec=/usr/bin/steam-runtime -steamdeck,' /usr/share/applications/steam.desktop
-
-	# set permissions for intel_gpu_top and mangohud
-	setcap cap_perfmon=+ep /usr/bin/intel_gpu_top
-
-	# work around Nvidia causing delays in game startup on AMD
-	mv /usr/share/vulkan/icd.d/nvidia_icd.json /usr/share/vulkan/icd.d/nvidia_icd.json.disabled
 }
