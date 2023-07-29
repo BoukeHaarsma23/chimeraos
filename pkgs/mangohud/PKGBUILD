@@ -10,9 +10,9 @@ makedepends=('dbus' 'gcc' 'meson' 'python-mako' 'libx11' 'lib32-libx11' 'git' 'p
 depends=('glslang' 'libglvnd' 'lib32-libglvnd' 'glew' 'glfw-x11')
 replaces=('vulkan-mesa-layer-mango')
 license=('MIT')
-_commit=6abc794b42edc1a397448ce4330e8fd164a5c529 # tag v0.6.9.1 - r72
+_commit=fc08f04b52db6ce871e9130d66e8d9e6f98e6f8d
 source=(
-        "mangohud"::"git+https://github.com/flightlessmango/MangoHud.git#commit=${_commit}"
+        "mangohud"::"git+https://github.com/boukehaarsma23/MangoHud.git#commit=${_commit}"
         "mangohud-minhook"::"git+https://github.com/flightlessmango/minhook.git"
         "imgui-v1.81.tar.gz::https://github.com/ocornut/imgui/archive/v1.81.tar.gz"
         "imgui-1.81-1-wrap.zip::https://wrapdb.mesonbuild.com/v1/projects/imgui/1.81/1/get_zip"
