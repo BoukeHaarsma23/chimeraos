@@ -10,7 +10,7 @@ makedepends=('dbus' 'gcc' 'meson' 'python-mako' 'libx11' 'lib32-libx11' 'git' 'p
 depends=('glslang' 'libglvnd' 'lib32-libglvnd' 'glew' 'glfw-x11')
 replaces=('vulkan-mesa-layer-mango')
 license=('MIT')
-_commit=6abc794b42edc1a397448ce4330e8fd164a5c529 # tag v0.6.9.1 - r72
+_commit=cd92cedeca8b85bbc99731d46daa245e6f9d0c19 # tag v0.6.9.1 - r72
 source=(
         "mangohud"::"git+https://github.com/flightlessmango/MangoHud.git#commit=${_commit}"
         "mangohud-minhook"::"git+https://github.com/flightlessmango/minhook.git"
