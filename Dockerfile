@@ -3,7 +3,6 @@ LABEL contributor="shadowapex@gmail.com"
 COPY rootfs/etc/pacman.conf /etc/pacman.conf
 RUN echo -e "keyserver-options auto-key-retrieve" >> /etc/pacman.d/gnupg/gpg.conf && \
     pacman-key --init && \
-    pacman-key --recv-keys  A31B6BD72486CFD6 && \
     pacman --noconfirm -Syyuu && \
     pacman --noconfirm -S \
     arch-install-scripts \
@@ -23,6 +22,8 @@ RUN echo -e "keyserver-options auto-key-retrieve" >> /etc/pacman.d/gnupg/gpg.con
     pacman --noconfirm -S --needed git && \
     echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
     useradd build -G wheel -m && \
+    mkdir -p /home/build/.gnupg && \
+    echo -e "keyserver-options auto-key-retrieve" >> /home/build/.gnupg/gpg.conf && \
     su - build -c "git clone https://aur.archlinux.org/pikaur.git /tmp/pikaur" && \
     su - build -c "cd /tmp/pikaur && makepkg -f" && \
     pacman --noconfirm -U /tmp/pikaur/pikaur-*.pkg.tar.zst
