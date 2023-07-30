@@ -65,7 +65,7 @@ b2sums=('SKIP'
         '3f1c2b4b3c35f6879e4dfe457103c27cc30abf265240b234efdf77487adb852a72c755a3099c7aed9a3e83f07ebbaee78343894ec74f0723e390c219f34568a3')
 
 prepare() {
-  sudo ln -sr /bin/glslang /bin/glslangValidator
+  #sudo ln -sr /bin/glslang /bin/glslangValidator
   cd "$srcdir/$_pkgname"
 
   git submodule init
