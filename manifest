@@ -160,8 +160,6 @@ export AUR_PACKAGES="\
 	frzr \
 	gamescope-plus \
 	gamescope-session-git \
-	handygccs-git \
-	hhfc-git \
 	legendary \
 	lib32-gamescope-plus \
 	libretro-dosbox-pure-git \
@@ -188,7 +186,6 @@ export SERVICES="\
 	chimera-proxy.service \
 	chimera-proxy.socket \
 	fstrim.timer \
-	handycon \
 	haveged \
 	lightdm \
 	sshd \
