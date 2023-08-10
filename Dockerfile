@@ -35,7 +35,7 @@ RUN echo -e "#!/bin/bash\nif [[ \"$1\" == \"--version\" ]]; then echo 'fake 244 
 
 # substitute check with !check to avoid running software from AUR in the build machine
 RUN sed -i -e 's/BUILDENV=(!distcc color !ccache check !sign)/BUILDENV=(!distcc color !ccache !check !sign)/g' /etc/makepkg.conf
-
+RUN sed -i 's/-march=[^ ]* -mtune=[^ ]*/-march=znver1/' /etc/makepkg.conf
 COPY manifest /manifest
 # Freeze packages and overwrite with overrides when needed
 RUN source /manifest && \
