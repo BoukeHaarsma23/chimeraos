@@ -67,21 +67,18 @@ function gamepadui() {
 	# switch to Gamepad/Deck UI (Gamescope/Wayland)
 	echo '' > ${SESSION_CONFIG}
 	sudo chimera-session-use-lightdm gamescope-session
-	sudo systemctl enable --now handycon
 }
 
 function opengamepadui() {
 	# switch to Gamepad/Deck UI (Gamescope/Wayland)
 	echo '' > ${SESSION_CONFIG}
 	sudo chimera-session-use-lightdm opengamepadui-session
-	sudo systemctl disable --now handycon
 }
 
 function gamepaduiqam() {
 	# switch to OpenGamepadUI (Gamescope/Wayland)
 	echo '' > ${SESSION_CONFIG}
 	sudo chimera-session-use-lightdm gamepadui-with-qam-session
-	sudo systemctl disable --now handycon
 }
 
 function print_invalid_session() {
