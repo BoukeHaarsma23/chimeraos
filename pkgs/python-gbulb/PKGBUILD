@@ -1,0 +1,27 @@
+# Maintainer: Patrick Griffis <tingpign@tingpng.se>
+# Contributor: Sam Day <me@samcday.com>
+
+_modname='gbulb'
+pkgname='python-gbulb'
+pkgver=0.6.4
+pkgrel=1
+pkgdesc='Implementation of asyncio using GLib'
+arch=('any')
+url='https://github.com/nathan-hoad/gbulb'
+license=('Apache')
+makedepends=('python-setuptools')
+depends=('python-gobject')
+optdepends=('gtk3: Gtk application integration')
+checkdepends=('python-tox')
+source=("https://github.com/beeware/gbulb/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "$_modname-$pkgver"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "$_modname-$pkgver"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+}

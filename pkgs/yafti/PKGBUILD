@@ -1,0 +1,20 @@
+pkgname=yafti
+pkgver=0.8.0
+pkgrel=1
+pkgdesc="Yet Another First Time Installer"
+arch=(any)
+depends=(libadwaita gtk4 gobject-introspection python-{rich,typer,yaml})
+#python-gbulb skipped because otherwise picked from AUR which does not build
+source=(https://github.com/ublue-os/yafti/archive/refs/tags/v$pkgver.zip)
+sha512sums=('SKIP')
+makedepends=(python-{build,installer,wheel,poetry})
+
+build() {
+    cd "$pkgname-$pkgver"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+}
