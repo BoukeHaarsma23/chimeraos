@@ -256,4 +256,8 @@ postinstallhook() {
 
 	# force -steamdeck option in desktop mode to prevent constant steam updates
 	sed -i 's,Exec=/usr/bin/steam-runtime,Exec=/usr/bin/steam-runtime -steamdeck,' /usr/share/applications/steam.desktop
+
+	# Add autostart (yafti)
+	mkdir -p /home/${USERNAME}/.config/autostart
+	cp /usr/share/applications/org.chimeraos.firstboot.desktop /home/${USERNAME}/.config/autostart/org.chimeraos.firstboot.desktop
 }
