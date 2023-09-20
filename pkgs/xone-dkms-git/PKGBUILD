@@ -26,8 +26,6 @@ pkgver() {
 package() {
   cd "${srcdir}/${_pkgname}"
 
-  git cherry-pick -n 6b745b72e4259b19d7548a2ce440bcfddbf6f506
-
   find . -type f \( -name 'dkms.conf' -o -name '*.c' \) -exec sed -i "s/#VERSION#/$pkgver/" {} +
   echo 'ccflags-y += -DDEBUG' >> "Kbuild"
 
@@ -36,5 +34,5 @@ package() {
   cp -r ${srcdir}/$_pkgname/* "${pkgdir}/usr/src/${_pkgname}-${pkgver}"
 
   echo "* Blacklisting xpad module..."
-  install -D -m 644 install/modprobe.conf "${pkgdir}/etc/modprobe.d/xone-blacklist.conf"
+  install -D -m 644 install/modprobe.conf "${pkgdir}/usr/lib/modprobe.d/xone-blacklist.conf"
 }
