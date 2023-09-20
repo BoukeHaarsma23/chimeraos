@@ -90,7 +90,6 @@ export PACKAGES="\
 	libva-vdpau-driver \
 	libxcrypt-compat \
 	libxss \
-	lightdm \
 	linux-firmware \
 	liquidctl \
 	logrotate \
@@ -116,6 +115,7 @@ export PACKAGES="\
 	python-inotify-simple \
 	retroarch \
 	rsync \
+	sddm \
 	smbclient \
 	sof-firmware \
 	sshfs \
@@ -211,8 +211,8 @@ export SERVICES="\
 	handycon \
 	haveged \
 	home-swapfile.swap \
-	lightdm \
 	ryzenadj-controller \
+	sddm \
 	sshd \
 	systemd-timesyncd \
 	swapfile \
@@ -243,7 +243,7 @@ postinstallhook() {
 	echo "${USERNAME} ALL=(ALL) NOPASSWD: /usr/bin/dmidecode -t 11
 	" > /etc/sudoers.d/steam
 	echo "${USERNAME} ALL=(ALL) NOPASSWD: /usr/bin/chimera-session-use-gamescope
-	${USERNAME} ALL=(ALL) NOPASSWD: /usr/bin/chimera-session-use-lightdm
+	${USERNAME} ALL=(ALL) NOPASSWD: /usr/bin/chimera-session-use-sddm
 	${USERNAME} ALL=(ALL) NOPASSWD: /usr/share/chimera/bin/power-tool
 	" > /etc/sudoers.d/chimera
 
