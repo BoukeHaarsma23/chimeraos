@@ -1,0 +1,4 @@
+#! /bin/bash
+
+sed -i "XSession=$1" /etc/gdm/gdm.conf.d/10-chimeraos-session.conf
+gdm-restart
