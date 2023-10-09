@@ -251,9 +251,6 @@ postinstallhook() {
 	# Add symlink for sessions
 	ln -s /var/lib/AccountsService/users/${USERNAME} /etc/gdm/gdm.conf.d/01-chimeraos-session.conf
 
-	# Set logo in plymouth
-	cp /usr/share/chimeraos/chimeraos-text.png /usr/share/plymouth/themes/spinner/watermark.png
-
 	# disable retroarch menu in joypad configs
 	find /usr/share/libretro/autoconfig -type f -name '*.cfg' | xargs -d '\n' sed -i '/input_menu_toggle_btn/d'
 
