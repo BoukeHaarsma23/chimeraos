@@ -3,7 +3,7 @@
 DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
 CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
 SESSION_CONFIG="${CONFIG_HOME}/environment.d/01-chimera-session.conf"
-SESSION_GDM_CONFIG="/etc/gdm/gdm.conf.d/10-chimeraos-session.conf"
+SESSION_GDM_CONFIG="/var/lib/AccountsService/users/$USER"
 SESSION_LIST=('desktop' 'desktop-xorg' 'gamepadui' 'opengamepadui' 'gamepadui-with-qam')
 SELECTED_SESSION="$1"
 
@@ -53,34 +53,34 @@ function desktop() {
 	clean_steam_shortcuts
 
 	# switch to Desktop
-	sudo chimera-session-use-gdm gnome-wayland
+	sudo chimera-session-use-gdm gnome-wayland $USER
 }
 
 function desktop_xorg() {
 	clean_steam_shortcuts
 
 	# switch to Desktop (Xorg)
-	sudo chimera-session-use-gdm gnome-xorg
+	sudo chimera-session-use-gdm gnome-xorg $USER
 }
 
 function gamepadui() {
 	# switch to Gamepad/Deck UI (Gamescope/Wayland)
 	echo '' > ${SESSION_CONFIG}
-	sudo chimera-session-use-gdm gamescope-session
+	sudo chimera-session-use-gdm gamescope-session $USER
 	sudo systemctl enable --now handycon
 }
 
 function opengamepadui() {
 	# switch to Gamepad/Deck UI (Gamescope/Wayland)
 	echo '' > ${SESSION_CONFIG}
-	sudo chimera-session-use-gdm opengamepadui-session
+	sudo chimera-session-use-gdm opengamepadui-session $USER
 	sudo systemctl disable --now handycon
 }
 
 function gamepaduiqam() {
 	# switch to OpenGamepadUI (Gamescope/Wayland)
 	echo '' > ${SESSION_CONFIG}
-	sudo chimera-session-use-gdm gamepadui-with-qam-session
+	sudo chimera-session-use-gdm gamepadui-with-qam-session $USER
 	sudo systemctl disable --now handycon
 }
 

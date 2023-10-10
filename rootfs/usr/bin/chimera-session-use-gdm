@@ -1,4 +1,10 @@
 #! /bin/bash
+echo "
+[Template]
+#EnvironmentFiles=/etc/os-release;
 
-sed -i "XSession=$1" /etc/gdm/gdm.conf.d/10-chimeraos-session.conf
-gdm-restart
+[User]
+Session=${1}
+Icon=/home/${2}/.face" > /var/lib/AccoutnsService/users/${2}
+systemctl enable gdm.service
+systemctl restart gdm.service

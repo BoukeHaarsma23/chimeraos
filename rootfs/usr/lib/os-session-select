@@ -4,12 +4,9 @@ set -e
 
 die() { echo >&2 "!! $*"; exit 1; }
 
-CONF_FILE="/etc/lightdm/lightdm.conf.d/10-chimeraos-session.conf"
+CONF_FILE="/var/lib/AccoutnsService/users/$USER"
 SENTINEL_FILE="steamos-session-select"
 RETURN_SESSION_FILE="chimeraos-session-return"
-
-# For sanity this shipped file must be present, to ensure we're still on a normal-looking Chimeraos setup.
-CHECK_FILE="/etc/lightdm/lightdm.conf.d/10-chimeraos-session.conf"
 
 session="${1:-gamescope}"
 session_type="wayland"
@@ -40,7 +37,7 @@ if [[ -z $SENTINEL_CREATED ]]; then
     cat "$SENTINEL_FILE"
   )
 
-  return_session=$(grep autologin-session $CONF_FILE | cut -d = -f 2)
+  return_session=$(grep Session $CONF_FILE | cut -d = -f 2)
   return_session=$(
     cd "$HOME"
     mkdir -p "$config_dir"
@@ -95,13 +92,17 @@ if [[ $EUID != 0 ]]; then
   exit 1
 fi
 
-{
-  echo "[Seat:*]"
-  echo "autologin-session=$session_launcher"
-} > "$CONF_FILE"
+echo "
+[Template]
+#EnvironmentFiles=/etc/os-release;
+
+[User]
+Session=$session_launcher
+Icon=/home/$USER/.face" > "$CONF_FILE"
+
 
 echo "Updated system autologin session to $session_launcher"
-systemctl reset-failed lightdm
-systemctl restart lightdm
-echo "Restarted LightDM"
+systemctl reset-failed gdm
+systemctl restart gdm
+echo "Restarted GDM"
 

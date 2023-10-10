@@ -248,8 +248,14 @@ postinstallhook() {
 	${USERNAME} ALL=(ALL) NOPASSWD: /usr/share/chimera/bin/power-tool
 	" > /etc/sudoers.d/chimera
 
-	# Add symlink for sessions
-	ln -s /var/lib/AccountsService/users/${USERNAME} /etc/gdm/gdm.conf.d/01-chimeraos-session.conf
+	# Write (default) session
+	echo "
+[Template]
+#EnvironmentFiles=/etc/os-release;
+
+[User]
+Session=steamos
+Icon=/home/${USERNAME}/.face" > /var/lib/AccoutnsService/users/${USERNAME}
 
 	# disable retroarch menu in joypad configs
 	find /usr/share/libretro/autoconfig -type f -name '*.cfg' | xargs -d '\n' sed -i '/input_menu_toggle_btn/d'
