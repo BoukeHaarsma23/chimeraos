@@ -255,7 +255,7 @@ postinstallhook() {
 
 [User]
 Session=steamos
-Icon=/home/${USERNAME}/.face" > /var/lib/AccoutnsService/users/${USERNAME}
+Icon=/home/${USERNAME}/.face" > /var/lib/AccountsService/users/${USERNAME}
 
 	# disable retroarch menu in joypad configs
 	find /usr/share/libretro/autoconfig -type f -name '*.cfg' | xargs -d '\n' sed -i '/input_menu_toggle_btn/d'
