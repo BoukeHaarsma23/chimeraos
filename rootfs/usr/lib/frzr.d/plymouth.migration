@@ -36,7 +36,7 @@ post_install() {
 
 	echo "copying files"
 
-	cp -v "$SUBVOL/usr/share/plymouth/" "/usr/share/plymouth/" | true
+	cp -rv "$SUBVOL/usr/share/plymouth/" "/usr/share/plymouth/" | true
 
     if [[ $RELOCK == 1 ]]; then
        btrfs property set -fts ${DEPLOYMENT_PATH} ro true
