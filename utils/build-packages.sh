@@ -17,6 +17,3 @@ done
 for package in pkgs/*/; do
     docker run -it --rm --entrypoint /workdir/pkgs/build-package.sh -v $(pwd):/workdir:Z chimera-full-local:latest "$package"
 done
-# Build chimera image using the AUR packages found in aur-pkgs.
-# If the -e NO_COMPRESS=1 gets removed, the docker container will tar the ouput image
-sudo docker run -it --rm -u root --privileged=true --entrypoint /workdir/build-image.sh -e NO_COMPRESS=1 -v $(pwd):/workdir:Z -v $(pwd)/output:/output:z chimera-full-local:latest $(echo local-$(git rev-parse HEAD | cut -c1-7))
