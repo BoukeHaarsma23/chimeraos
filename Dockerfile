@@ -36,6 +36,7 @@ RUN echo -e "#!/bin/bash\nif [[ \"$1\" == \"--version\" ]]; then echo 'fake 244 
     chmod +x /usr/bin/systemd-run
 
 # substitute check with !check to avoid running software from AUR in the build machine
+RUN sed -i -e s'/\(^.*MAKEFLAGS.*$\)/MAKEFLAGS=\"-j$(nproc)\"/g' /etc/makepkg.conf
 RUN sed -i -e 's/BUILDENV=(!distcc color !ccache check !sign)/BUILDENV=(!distcc color !ccache !check !sign)/g' /etc/makepkg.conf
 
 COPY manifest /manifest

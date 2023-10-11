@@ -3,8 +3,6 @@
 set -e
 set -x
 
-source manifest;
-
 sudo mkdir -p /temp/package
 sudo chown build:build /temp/package
 sudo chown build:build /workdir/aur-pkgs

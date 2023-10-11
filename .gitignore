@@ -1,4 +1,5 @@
 *.SRCINFO
+*.pkg.*
 *.img.tar.xz
 *.img
 .cache/*
