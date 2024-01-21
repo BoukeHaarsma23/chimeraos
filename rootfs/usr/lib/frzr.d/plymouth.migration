@@ -1,0 +1,40 @@
+# Migrate to plymouth
+post_install() {
+	local MOUNT_PATH=$1
+	local SUBVOL=$2
+	local NAME=$3
+
+	if [ -e /usr/share/plymouth/themes/spinner/watermark.png ]; then
+		# migration has already completed, exit silently
+		return 0
+	fi
+
+	echo "Migrating to plymouth ..."
+
+	if [ "$#" -lt 3 ]; then
+		echo "Migration aborted: not enough arguments"
+		return 1
+	fi
+
+	### Grabbing name of the currently deployed system
+	ID=$(grep '^ID=' /etc/os-release | awk -F= '{ print $2 }' | sed 's/"//g')
+	VERSIONID=$(grep '^VERSION_ID=' /etc/os-release | awk -F= '{ print $2 }' | sed 's/"//g')
+	BUILDID=$(grep '^BUILD_ID=' /etc/os-release | awk -F= '{ print $2 }' | sed 's/"//g')
+
+    BUILD="$ID"-"$VERSIONID"_"$BUILDID"
+    DEPLOYMENT_PATH="/frzr_root/deployments/$BUILD"
+    
+    # Get locked state
+    RELOCK=0
+    LOCK_STATE=$(btrfs property get -fts "$DEPLOYMENT_PATH")
+    if [[ $LOCK_STATE == *"ro=true"* ]]; then
+        btrfs property set -fts ${DEPLOYMENT_PATH} ro false
+        RELOCK=1
+    else
+        echo "Filesystem appears to be unlocked"
+    fi
+
+	echo "copying files"
+
+	cp -rv "$SUBVOL/usr/share/plymouth/" "/usr/share/plymouth/"
+}
