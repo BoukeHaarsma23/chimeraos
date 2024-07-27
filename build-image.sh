@@ -104,8 +104,8 @@ pacman -S --noconfirm dracut
 # install kernel package
 if [ "$KERNEL_PACKAGE_ORIGIN" == "local" ] ; then
 	pacman --noconfirm -U --overwrite '*' \
-	/own_pkgs/${KERNEL_PACKAGE}-*.pkg.tar.zst 
-	rm -rf /own_pkgs/${KERNEL_PACKAGE}-*.pkg.tar.zst
+	/own_pkgs/${KERNEL_PACKAGE}-*.pkg*
+	rm -rf /own_pkgs/${KERNEL_PACKAGE}-*.pkg*
 else
 	pacman --noconfirm -S "${KERNEL_PACKAGE}" "${KERNEL_PACKAGE}-headers"
 fi

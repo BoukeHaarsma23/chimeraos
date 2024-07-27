@@ -39,6 +39,7 @@ RUN echo -e "#!/bin/bash\nif [[ \"$1\" == \"--version\" ]]; then echo 'fake 244 
 # substitute check with !check to avoid running software from AUR in the build machine
 # also remove creation of debug packages.
 RUN sed -i '/BUILDENV/s/check/!check/g' /etc/makepkg.conf && \
+    sed -i '/PKGEXT/s/\.zst//g' /etc/makepkg.conf && \
     sed -i '/OPTIONS/s/debug/!debug/g' /etc/makepkg.conf
 
 COPY manifest /manifest
